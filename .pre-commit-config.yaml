@@ -89,7 +89,7 @@ repos:
         entry: python3 outils/verifications/partage.py
         language: python
         types: [text]
-        exclude: ^(rapports/|\.pre-commit-config\.yaml$|outils/verifications/partage\.py$|tests/)
+        exclude: (^rapports/|^\.pre-commit-config\.yaml$|^outils/verifications/partage\.py$|(^|/)tests/)
 
       # --- Dépendances Node (avant push) ---
       - id: npm-audit
