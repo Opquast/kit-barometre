@@ -154,7 +154,7 @@ class Client:
             except (OSError, zlib.error):
                 corps = brut
             return {"statut": r.status, "entetes": entetes, "corps": corps, "octets_transferes": len(brut)}
-        return {"statut": 429, "entetes": {}, "corps": b"", "octets_transferes": 0, "erreur": "429 persistant"}
+        return {"statut": 429, "entetes": {}, "corps": b"", "octets_transferes": 0, "erreur": "429 persistant"}  # pragma: no cover  (inaccessible : le dernier essai sort par le return précédent)
 
 
 # --------------------------------------------------------------------------- HTML
