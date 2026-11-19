@@ -1,0 +1,66 @@
+{
+ "_aide": "Les trois lectures IA indépendantes (sous-agents). Lu par scripts/preparer_lectures.py (briefs), scripts/valider_lectures.py et scripts/lecture_critique.py (contrôle des sorties). regles : numéros Opquast V5, ou \"regles_une_source\" (liste par site écrite par scripts/regles_une_source.py dans <hors>/regles_une_source.json). taille_lot : nombre de sites par sous-agent. sortie : nom du fichier rendu dans resultats/sources-<date>/, {n} étant le numéro du lot. preuve : citation, capture ou dom_ou_capture (formes contrôlées par valider_lectures.py).",
+ "bilan_max_lignes": 15,
+ "consignes_communes": [
+  "Lecture seule, aucune requête réseau. INTERDIT de lire quoi que ce soit dans le dépôt (resultats/, scripts/, referentiel/) : c'est ce qui rend la lecture indépendante. Seule exception : écrire le fichier de sortie indiqué plus bas.",
+  "Consulter le protocole de chaque règle avec l'outil MCP Opquast get_rule (paramètre number), une seule fois par règle, au début, et l'appliquer à la lettre. Si un protocole est déjà extrait dans <hors>/protocoles/, le lire au lieu d'appeler get_rule.",
+  "Statuts : C, NC, NA avec une preuve au format demandé, ou NT quand les fichiers ne suffisent pas (dire pourquoi en une phrase). Ne jamais deviner.",
+  "Une entrée par règle de la liste et par site, clés exactement comme écrites ici (nom du site, numéro de règle en chaîne).",
+  "Confidentialité : remplacer noms de personnes, e-mails et téléphones par [masqué]. Pas de tiret long.",
+  "Écrire le fichier de sortie en JSON valide, au chemin exact donné, puis répondre par un bilan court : décompte par statut et par site, puis cinq constats marquants au plus."
+ ],
+ "lectures": {
+  "1": {
+   "nom": "Textes légaux",
+   "source": "Lecture IA indépendante (probabiliste)",
+   "sortie": "lecture_ia_lot{n}.json",
+   "taille_lot": 3,
+   "entrees": [
+    {"cle": "textes", "dossier": "textes", "motif": "{prefixe}__*.txt", "description": "pages légales du relevé et politiques Shopify publiques (__politique_*)", "obligatoire": true}
+   ],
+   "regles": [2, 7, 8, 16, 17, 22, 29, 35, 36, 37, 40, 42, 43, 44, 45, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 58, 68, 99, 100, 101, 106, 108, 109, 112, 114, 115, 129, 151, 177, 178, 208],
+   "preuve": "citation",
+   "format_preuve": "« citation exacte » (fichier.txt) : 25 mots au plus, recopiés mot pour mot, suivis du fichier entre parenthèses. Pour un NC ou un NA fondé sur une absence : absent: ce qui a été cherché (fichier.txt).",
+   "consignes": [
+    "Règles qui portent sur ce qui se passe avant la validation de la commande : NT, en notant ce que disent les CGV.",
+    "Un C n'est retenu que si la citation est retrouvée mot pour mot dans les textes (scripts/verifier_citations.py)."
+   ],
+   "regles_tunnel": []
+  },
+  "2": {
+   "nom": "Captures",
+   "source": "Lecture visuelle IA des captures (probabiliste)",
+   "sortie": "lecture_visuelle_lot{n}.json",
+   "taille_lot": 1,
+   "entrees": [
+    {"cle": "captures", "dossier": "captures", "motif": "{prefixe}__*.jpg", "description": "captures du haut de page (__haut.jpg) et de la page entière (.jpg), une par gabarit", "obligatoire": true}
+   ],
+   "regles": [2, 4, 6, 7, 8, 12, 22, 39, 40, 56, 65, 99, 100, 123, 127, 138, 139, 143, 153, 155, 157, 158, 160, 161, 162, 163, 180, 184, 188, 192],
+   "preuve": "capture",
+   "format_preuve": "capture: fichier.jpg | ce qui est vu (l'écran qui justifie le statut).",
+   "consignes": [
+    "Statut au niveau du site : non conforme si un écran l'est, avec cet écran en preuve.",
+    "NT pour ce qu'une image fixe ne montre pas (survol, animation, focus)."
+   ],
+   "regles_tunnel": []
+  },
+  "3": {
+   "nom": "DOM, captures et paiement",
+   "source": "Lecture IA du DOM et des captures (probabiliste)",
+   "sortie": "lecture_dom_lot{n}.json",
+   "taille_lot": 1,
+   "entrees": [
+    {"cle": "dom", "dossier": "dom", "motif": "{prefixe}__*.html", "description": "DOM rendu de chaque gabarit", "obligatoire": true},
+    {"cle": "captures", "dossier": "captures", "motif": "{prefixe}__*.jpg", "description": "captures des gabarits", "obligatoire": true},
+    {"cle": "paiement", "dossier": "paiement", "motif": "{prefixe}.*", "description": "texte (.txt) et capture (.jpg) de la page de paiement", "obligatoire": false}
+   ],
+   "regles": "regles_une_source",
+   "preuve": "dom_ou_capture",
+   "format_preuve": "dom: fichier | extrait exact de 20 à 160 caractères (introuvable mot pour mot = rejeté), ou capture: fichier.jpg | ce qui est vu (jugement visuel).",
+   "consignes": [
+    "Ne lire que la liste de règles donnée ici, jamais resultats/."
+   ],
+   "regles_tunnel": [35, 36, 41, 44, 52, 56, 57, 86, 88, 89]
+  }
+ }
+}

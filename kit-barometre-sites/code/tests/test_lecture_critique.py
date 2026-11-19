@@ -131,12 +131,17 @@ def preparer(r, monkeypatch):
     ecrire_json(r / "resultats/sources-2026-11-12/shopify.json", {
         "Boutique A": {"_fini": True, "223": ["C", "Code 404, 30 Ko", "HTML brut de la page 404"], "47": ["C", "pays", "Shopify meta.json"]},
         "Boutique B": {"223": ["NC", "sans code", "HTML brut de la page 404"]}})
+    ecrire_json(r / "referentiel/parc.json", {"responsable": "Camille", "sites": [{"nom": "Boutique A"}, {"nom": "Boutique B"}]})
     ecrire_json(r / "resultats/sources-2026-11-12/lecture_ia_lot1.json", {"Boutique A": {
-        "16": ["C", "« cité »", "m", "citation vérifiée"], "17": ["C", "« pas trouvé »", "m", "citation introuvable"],
-        "18": ["C", "court", "m"], "19": ["NC", "absent", "m"]}})
+        "16": ["C", "« cité » (Boutique_A__cgv.txt)", "m", "citation vérifiée"], "17": ["C", "« pas trouvé » (Boutique_A__cgv.txt)", "m", "citation introuvable"],
+        "22": ["C", "court", "m"], "18": ["NC", "absent: hors liste (Boutique_A__cgv.txt)", "m"]},
+        "Boutique Inconnue": {"16": ["C", "« cité » (Boutique_Inconnue__cgv.txt)", "m", "citation vérifiée"]}, "Boutique B": "pas un objet"})
+    (r / "resultats/sources-2026-11-12/lecture_ia_lot2.json").write_text("{pas du json", encoding="utf-8")
     ecrire_json(r / "resultats/sources-2026-11-12/lecture_dom_lot1.json", {"Boutique A": {
-        "21": ["NC", "dom: x | y", "m", "extrait vérifié"], "22": ["C", "", "m", "preuve absente"], "23": ["C", "", "m"]}})
-    ecrire_json(r / "resultats/sources-2026-11-12/lecture_visuelle_lot1.json", {"Boutique A": {"24": ["NC", "capture", "m"]}})
+        "21": ["NC", "dom: Boutique_A__accueil.html | <button class=\"menu\">Menu</button>", "m", "extrait vérifié"],
+        "22": ["C", "", "m", "preuve absente"], "23": ["C", "dom: Boutique_A__accueil.html | <button class=\"x\">Ok</button>", "m"]}})
+    ecrire_json(r / "resultats/sources-2026-11-12/lecture_visuelle_lot1.json", {"Boutique A": {
+        "4": ["NC", "capture: Boutique_A__accueil__haut.jpg | texte gris clair illisible", "m"], "24": ["NC", "capture", "m"]}})
     ecrire_json(r / "resultats/email-2026-11-12/outils.json", {
         "E1": {"axe": {"violations": [{"regle": "image-alt", "elements": 2}]}}, "E2": {"axe": {"violations": []}}, "E3": {"axe": {"violations": []}}})
     ecrire_json(r / "resultats/email-2026-11-12/checkdmarc.json", {"domaines": {
@@ -181,6 +186,10 @@ def test_lecture_critique(racine, monkeypatch, capsys):
     assert rec["220"]["Sitemap (xmllint)"] == "C" and rec["222"]["HTML brut de la page 404"] == "C"
     assert rec["16"]["Lecture IA indépendante (probabiliste)"] == "C" and "17" not in rec and "18" not in rec
     assert rec["21"]["Lecture IA du DOM et des captures (probabiliste)"] == "NC" and "22" not in rec and "23" not in rec
+    assert rec["4"]["Lecture visuelle IA des captures (probabiliste)"] == "NC" and "24" not in rec
+    assert "Contre-examen (validé par Camille)" in rec["6"] and "validé par Camille" in ecarts["6"]["pourquoi"]
+    sortie_ = capsys.readouterr().out
+    assert "Lecture 1 (Textes légaux) : 5 entrée(s) invalide(s)" in sortie_ and "Lecture 2 (Captures) : 1 entrée(s)" in sortie_
     assert "14" not in rec and rec["118"]["Pa11y (HTML_CodeSniffer)"] == "NC"
     assert a["statut_sources"]["12"] == "C" and a["statut_sources"]["232"] is None
     assert "7" not in a["sources_par_regle"] and "8" not in a["sources_par_regle"] and "abc" in a["sources_par_regle"]
@@ -195,7 +204,7 @@ def test_lecture_critique(racine, monkeypatch, capsys):
     assert em[("EM25", "Sur E1")]["type"] == "limite d'outil"
     sources = out["_emails"]["Klaviyo Boutique C"]["sources_par_critere"]
     assert sources["EM30"] == ["Checklist (script et IA)"] and "axe-core" in sources["EM06"] and "IBM" in sources["EM10"]
-    assert "Boutique A" in capsys.readouterr().out
+    assert "Boutique A" in sortie_
 
 
 def test_lecture_critique_minimale(racine, monkeypatch):

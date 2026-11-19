@@ -21,6 +21,9 @@ import json
 from datetime import date
 from pathlib import Path
 
+import parc
+import valider_lectures as vl
+
 RACINE = Path(__file__).resolve().parent.parent
 
 # Écarts robot / scripts : (type, statut à retenir, fait clé du constat, pourquoi, recommandation)
@@ -254,6 +257,38 @@ ECARTEES = {r["numero"] for r in csv.DictReader((RACINE / "referentiel" / "repar
 EXCL_SITES = json.loads((RACINE / "referentiel" / "exclusions-sites.json").read_text(encoding="utf-8"))
 
 
+def source_contre_examen() -> str:
+    """Nom de la source « contre-examen », avec la personne responsable du parc (même clé dans generer_suivi.py)."""
+    return f"Contre-examen (validé par {parc.responsable(RACINE / 'referentiel' / 'parc.json')})"
+
+
+def lectures_valides(numero: str) -> dict:
+    """Entrées valides de la lecture <numero>, tous passages confondus (le plus récent l'emporte).
+
+    Mêmes règles que scripts/valider_lectures.py (sans <hors> : fichiers cités et liste de la lecture 3 non vérifiés).
+    Une entrée invalide (site inconnu, règle hors liste, statut ou preuve hors format) est écartée et comptée.
+    """
+    cfg = vl.charger_lectures(RACINE)["lectures"][numero]
+    sites = vl.sites_parc(RACINE)
+    res: dict = {}
+    rejets = 0
+    for f_ in sorted(RACINE.glob(f"resultats/sources-*/{cfg['sortie'].replace('{n}', '*')}")):
+        d_, err_ = vl.lire_sortie(f_)
+        rejets += len(err_)
+        for site_, regles_ in d_.items():
+            if not isinstance(regles_, dict):
+                rejets += 1
+                continue
+            for k_, v_ in regles_.items():
+                if vl.erreurs_entree(cfg, site_, k_, v_, sites):
+                    rejets += 1
+                else:
+                    res.setdefault(site_, {})[k_] = v_
+    if rejets:
+        print(f"⚠ Lecture {numero} ({cfg['nom']}) : {rejets} entrée(s) invalide(s) écartée(s) ; détail : python3 scripts/valider_lectures.py <hors>")
+    return res
+
+
 def main() -> None:
     etat = lire("resultats/etat-*/etat.json")["sites"]
     fiche = lire("resultats/contre-examen-*/fiche.json")
@@ -279,18 +314,9 @@ def main() -> None:
     sources_html2 = lire_dernier("html2.json")
     sources_curl = lire_dernier("curl.json")
     sources_panier = lire_dernier("panier.json")
-    lecture_dom: dict = {}
-    for f_ in sorted(RACINE.glob("resultats/sources-*/lecture_dom_lot*.json")):
-        for site_, regles_ in json.loads(f_.read_text(encoding="utf-8")).items():
-            lecture_dom.setdefault(site_, {}).update(regles_)
-    lecture_vis: dict = {}
-    for f_ in sorted(RACINE.glob("resultats/sources-*/lecture_visuelle_lot*.json")):
-        for site_, regles_ in json.loads(f_.read_text(encoding="utf-8")).items():
-            lecture_vis.setdefault(site_, {}).update(regles_)
-    lecture_ia: dict = {}
-    for f_ in sorted(RACINE.glob("resultats/sources-*/lecture_ia_lot*.json")):
-        for site_, regles_ in json.loads(f_.read_text(encoding="utf-8")).items():
-            lecture_ia.setdefault(site_, {}).update(regles_)
+    # lectures IA : seules les entrées valides (scripts/valider_lectures.py) servent de source
+    lecture_ia, lecture_vis, lecture_dom = (lectures_valides(n_) for n_ in ("1", "2", "3"))
+    source_ce = source_contre_examen()
     global OUTILS
     OUTILS = {p_: charger_outil(p_) for p_, _ in SOURCES_SCRIPTS}
     sortie = {}
@@ -307,7 +333,7 @@ def main() -> None:
                 par_regle.setdefault(k, {})["Opquast basics (robot)"] = v["robot"]
         for l in fiche.get(nom, []):
             if l.get("decision_statut"):
-                par_regle.setdefault(str(l["regle"]), {})["Contre-examen (validé par Mattea)"] = l["decision_statut"]
+                par_regle.setdefault(str(l["regle"]), {})[source_ce] = l["decision_statut"]
         preuves = {}
         import re as _re
         if axe.get(nom):
@@ -455,7 +481,7 @@ def main() -> None:
             ev = "; ".join(p for a in nc for p in preuves.get((k, a), []))
             constat = f"Non conforme selon {', '.join(nc)} ; conforme selon {', '.join(c)}." + (f" Détail : {ev}." if ev else "")
             final = v.get("statut")
-            ce = src.get("Contre-examen (validé par Mattea)")
+            ce = src.get(source_ce)
             if k in ANALYSE_CE and ce:
                 typ, st, pq, reco = ANALYSE_CE[k]
                 l = next(l for l in fiche[nom] if str(l["regle"]) == k)
@@ -487,7 +513,7 @@ def main() -> None:
             det_c = [a for a in c if a in OUTILS_DETERMINISTES]
             if ce:
                 typ, st = ("faux positif" if ce == "C" else "faux négatif"), ce
-                pq = f"Le contre-examen dans le navigateur, validé par Mattea, tranche : {STATUT_LIB[ce]}. " + ("Les outils qui disaient non conforme se fondaient sur un indice indirect." if ce == "C" else "Les outils qui disaient conforme ne voyaient pas ce cas.")
+                pq = f"Le contre-examen dans le navigateur, validé par {parc.responsable(RACINE / 'referentiel' / 'parc.json')}, tranche : {STATUT_LIB[ce]}. " + ("Les outils qui disaient non conforme se fondaient sur un indice indirect." if ce == "C" else "Les outils qui disaient conforme ne voyaient pas ce cas.")
                 reco = "Retenir le contre-examen." + ("" if ce == "C" else " Voir la recommandation de la règle.")
             elif det_nc:
                 typ, st = "faux négatif", "NC"
