@@ -38,3 +38,28 @@ def ecrire_json(chemin: Path, donnees) -> Path:
 
 def lire_json(chemin: Path):
     return json.loads(chemin.read_text(encoding="utf-8"))
+
+
+class FausseReponse:
+    """Réponse de urlopen simulée (gestionnaire de contexte)."""
+
+    def __init__(self, corps: str = "", status: int = 200, url: str = ""):
+        self.status, self._url, self._corps = status, url, corps.encode()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def geturl(self):
+        return self._url
+
+    def read(self):
+        return self._corps
+
+
+def erreur_http(code: int):
+    from urllib.error import HTTPError
+
+    return HTTPError("https://x", code, "erreur", {}, None)

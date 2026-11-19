@@ -111,7 +111,7 @@ def get(url: str, delai: float) -> tuple[int, str, str]:
             return e.code, url, ""
         except (URLError, TimeoutError, OSError) as e:
             return 0, url, str(e)
-    return 429, url, ""
+    return 429, url, ""  # pragma: no cover  (inaccessible : le 3e essai renvoie toujours)
 
 
 def regles(url: str, gabarit: str, html: str, nom_site: str) -> dict:
