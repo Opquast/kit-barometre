@@ -136,6 +136,8 @@ for (const e of ecrans) {
       const choix = [...Rules].filter(x => Object.keys(ALFA).some(k => x.uri.toLowerCase().endsWith('/' + k)));
       const out = await Audit.of(alfaPage, choix).evaluate();
       const c = {};
+      // « ?? {} » jamais évalué : c[k] vient d'être créé par « ??= » à gauche de l'affectation, évaluée avant la droite.
+      /* node:coverage ignore next */
       for (const o of out) { const j = o.toJSON(); const k = Object.keys(ALFA).find(k => j.rule.uri.toLowerCase().endsWith('/' + k)); (c[k] ??= {})[j.outcome] = ((c[k] ?? {})[j.outcome] || 0) + 1; }
       return c;
     })(), pause(60000).then(() => null)]).catch(() => null);

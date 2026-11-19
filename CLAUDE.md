@@ -28,7 +28,8 @@ pre-commit install --install-hooks
 - Tests du kit : `kit-barometre-sites/code/tests/` (config dans `kit-barometre-sites/code/pyproject.toml`) ; tests des scripts de contrôle : `outils/tests/` (config dans `outils/pyproject.toml`).
 - Les tests n'accèdent jamais au réseau ni aux sites : HTTP, DNS, TLS, sous-processus et services en ligne sont simulés, et chaque test écrit dans un dossier temporaire (fixture `racine` de `tests/conftest.py`).
 - Lancer à la main, depuis le dossier de la suite : `python -m pytest --cov` (environnement `.venv` à la racine : `python3 -m venv .venv && .venv/bin/pip install pytest pytest-cov openpyxl pyyaml`).
-- Une ligne réellement inaccessible se marque `# pragma: no cover` avec sa raison ; tout nouveau code arrive avec ses tests.
+- Tests JavaScript : `kit-barometre-sites/code/tests/js/` (node:test, `npm run test:js` ; dépendances : `npm ci --ignore-scripts`, aucun navigateur requis). Playwright et les autres paquets sont simulés par `mock.module` ; chaque scénario tourne dans un processus enfant, car deux imports du même script dans un processus ne fusionnent pas leur couverture.
+- Une ligne réellement inaccessible se marque `# pragma: no cover` (Python) ou `/* node:coverage ignore next */` (JavaScript) avec sa raison ; tout nouveau code arrive avec ses tests.
 - Les scripts de contrôle maison sont dans `outils/verifications/`. Une exception bandit se justifie en ligne (`# nosec Bxxx: raison`).
 - Les liens propres à un compte (URL d'Artifact publiés) vont dans `kit-barometre-sites/code/liens-locaux.json`, ignoré par git.
 - **Sécurité** : ne jamais committer de secrets (mots de passe, clés d'API, jetons, fichiers `.env`).

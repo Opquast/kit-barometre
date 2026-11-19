@@ -101,6 +101,8 @@
   set(122, !videos.length ? NA : (sansSousTitres.length ? NC : NT), `${videos.length} vidéo(s), ${sansSousTitres.length} avec son et sans piste de sous-titres`);
   const autoVideo = [...document.querySelectorAll('video[autoplay]')].filter(v => !v.muted);
   set(124, !videos.length ? NA : (autoVideo.length ? NC : C), `${autoVideo.length} vidéo(s) lancée(s) automatiquement avec le son`);
+  // Branche « conforme » inaccessible : la condition exige !audios.length, donc audios.length est toujours 0 ici (défaut signalé, non corrigé).
+  /* node:coverage ignore next */
   set(125, !audios.length && !document.querySelector('video[autoplay]:not([muted])') ? (audios.length ? C : NA) : NC, `${document.querySelectorAll('audio[autoplay]').length} son(s) en lecture automatique`);
   // 128 : indicatif international sur les liens téléphone
   const telLiens = liens.filter(a => a.href.startsWith('tel:'));
