@@ -1,0 +1,22 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Système
+.DS_Store
+Thumbs.db
+._*
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp
+*~
+
+# Fichiers temporaires
+*.tmp
+*.log
+~$*
