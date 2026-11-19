@@ -192,20 +192,83 @@ def test_main_synthese_ok(racine, monkeypatch, tmp_path, lancer, capsys):
     appels = lancer()
     monkeypatch.setattr(sys, "argv", ["bm", "--hors", str(tmp_path), "--depuis", "synthese"])
     assert bm.main() == 0
-    assert len(appels) == 6
-    assert "ok  synthese" in capsys.readouterr().out
+    assert len(appels) == 7 and "regles_une_source.py" in appels[-1][1] and appels[-1][2] == str(tmp_path)
+    assert not any("valider_lectures" in " ".join(c) for c in appels)
+    out = capsys.readouterr().out
+    assert "ok    synthese" in out and "Échecs : 0" in out and "Reprise" not in out
+    etat = json.loads(next((tmp_path / "resultats").glob("etat-passage-*.json")).read_text(encoding="utf-8"))
+    assert etat["termine"] and etat["code"] == 0 and etat["reprise"] is None
+
+
+def test_main_valider_lectures_avant_fusion(racine, monkeypatch, tmp_path, lancer):
+    r = racine(bm)
+    (r / "scripts/valider_lectures.py").write_text("", encoding="utf-8")
+    appels = lancer()
+    monkeypatch.setattr(sys, "argv", ["bm", "--hors", str(tmp_path / "hors"), "--etapes", "synthese"])
+    assert bm.main() == 0
+    noms = [c[1].rsplit("/", 1)[-1] for c in appels]
+    assert noms.index("valider_lectures.py") == noms.index("fusion_scripts.py") - 1
+    assert appels[noms.index("valider_lectures.py")][2] == str(tmp_path / "hors")
+    etat = json.loads(next((r / "resultats").glob("etat-passage-*.json")).read_text(encoding="utf-8"))
+    assert etat["termine"] and etat["code"] == 0 and etat["etapes"]["synthese"]["statut"] == "fait"
+    assert [c["nom"] for c in etat["etapes"]["synthese"]["commandes"]] == noms
+
+
+def test_main_valider_lectures_en_echec(racine, monkeypatch, tmp_path, lancer, capsys):
+    r = racine(bm)
+    (r / "scripts/valider_lectures.py").write_text("", encoding="utf-8")
+    appels = lancer({"valider_lectures": 1})
+    monkeypatch.setattr(sys, "argv", ["bm", "--hors", str(tmp_path), "--etapes", "synthese"])
+    assert bm.main() == 1
+    assert not any("fusion_scripts" in " ".join(c) for c in appels)
+    etat = json.loads(next((r / "resultats").glob("etat-passage-*.json")).read_text(encoding="utf-8"))
+    assert etat["echecs"][0]["nom"] == "valider_lectures.py" and etat["reprise"].endswith("--depuis synthese")
 
 
 def test_main_echec_et_continuer(racine, monkeypatch, tmp_path, lancer, capsys):
-    racine(bm)
+    r = racine(bm)
     appels = lancer({"fusion_scripts": 5})
     monkeypatch.setattr(sys, "argv", ["bm", "--hors", str(tmp_path), "--etapes", "synthese"])
     assert bm.main() == 5
-    assert "Corriger puis relancer avec --depuis synthese" in capsys.readouterr().err
+    sortie = capsys.readouterr()
+    assert "Corriger puis relancer avec --depuis synthese" in sortie.err
+    assert f"Reprise : python3 scripts/barometre.py --hors {tmp_path} --depuis synthese" in sortie.out
+    etat = json.loads(next((r / "resultats").glob("etat-passage-*.json")).read_text(encoding="utf-8"))
+    assert etat["code"] == 5 and etat["etapes"]["synthese"]["statut"] == "échec" and len(etat["etapes"]["synthese"]["commandes"]) == 2
     appels.clear()
     monkeypatch.setattr(sys, "argv", ["bm", "--hors", str(tmp_path), "--etapes", "synthese", "--continuer"])
+    assert bm.main() == 1
+    assert "ÉCHEC synthese" in capsys.readouterr().out and len(appels) == 7
+
+
+def test_main_arreter_l_emporte(racine, monkeypatch, tmp_path, lancer):
+    racine(bm)
+    appels = lancer({"fusion_scripts": 5})
+    monkeypatch.setattr(sys, "argv", ["bm", "--hors", str(tmp_path), "--etapes", "synthese", "--continuer", "--arreter"])
+    assert bm.main() == 5
+    assert len(appels) == 2
+
+
+def test_main_reprise_etapes_et_service(racine, monkeypatch, tmp_path, lancer, capsys):
+    r = racine(bm)
+    lancer({"repartir_regles": 2, "exporter_csv": 1})
+    monkeypatch.setattr(sys, "argv", ["bm", "--hors", str(tmp_path / "h h"), "--etapes", "referentiel,synthese", "--continuer", "--service", "Ma boutique"])
+    assert bm.main() == 1
+    etat = json.loads(next((r / "resultats").glob("etat-passage-*.json")).read_text(encoding="utf-8"))
+    assert etat["reprise"] == f"python3 scripts/barometre.py --hors '{tmp_path / 'h h'}' --etapes referentiel,synthese --service 'Ma boutique'"
+    assert [x["etape"] for x in etat["echecs"]] == ["referentiel", "synthese"]
+    assert "Échecs : 2" in capsys.readouterr().out
+
+
+def test_main_date_du_passage_de_nuit(racine, monkeypatch, tmp_path, lancer):
+    r = racine(bm)
+    lancer()
+    monkeypatch.setenv("BAROMETRE_DATE", "2026-01-02")
+    monkeypatch.setattr(bm, "etapes", lambda hors, service: {e: [] for e in bm.ORDRE})
+    monkeypatch.setattr(sys, "argv", ["bm", "--hors", str(tmp_path), "--etapes", "moteur"])
     assert bm.main() == 0
-    assert "ÉCHEC synthese" in capsys.readouterr().out
+    etat = json.loads((r / "resultats/etat-passage-2026-01-02.json").read_text(encoding="utf-8"))
+    assert etat["etapes"]["moteur"] == {"statut": "fait", "commandes": []}
 
 
 def test_main_moteur_et_commande_courte(racine, monkeypatch, tmp_path, lancer, capsys):
@@ -245,7 +308,7 @@ def test_nuit(racine, monkeypatch, tmp_path, lancer, capsys, systeme, which, bat
         assert "sur batterie" in sortie.err
         return
     relance = appels[-1]
-    assert "--nuit" not in relance and "--forcer" not in relance
+    assert "--nuit" not in relance and "--forcer" not in relance and relance[-1] == "--continuer"
     if systeme == "Darwin":
         assert relance[:2] == ["caffeinate", "-dimsu"]
     elif systeme == "Linux":
@@ -254,6 +317,16 @@ def test_nuit(racine, monkeypatch, tmp_path, lancer, capsys, systeme, which, bat
         assert "Mise en veille non bloquée" in sortie.err and "sans blocage de veille" in sortie.out
     journal = next((r / "resultats").glob("journal-barometre-*.log")).read_text(encoding="utf-8")
     assert "===== début" in journal and "code 0" in journal
+
+
+def test_nuit_arreter_sans_continuer(racine, monkeypatch, tmp_path, lancer):
+    racine(bm)
+    appels = lancer()
+    monkeypatch.setattr(bm.platform, "system", lambda: "Windows")
+    monkeypatch.delenv("BAROMETRE_EVEILLE", raising=False)
+    monkeypatch.setattr(sys, "argv", ["bm", "--hors", str(tmp_path), "--nuit", "--arreter"])
+    assert bm.main() == 0
+    assert "--continuer" not in appels[-1] and "--arreter" in appels[-1]
 
 
 def test_nuit_deja_eveille(racine, monkeypatch, tmp_path, lancer):

@@ -14,7 +14,8 @@ d'eServices Manager, et la publication (page Artifact, saisie dans eServices Man
   releve       relevé navigateur, parcours sans commande, décisions du relevé
   sources      deuxièmes sources : axe et IBM complémentaires, Shopify public, HTML brut et CSS, curl, panier,
                outils tiers (moteur Opquast, Alfa, Sa11y, html-validate)
-  synthese     vérification des citations, fusion, état, lecture critique, suivi HTML, export CSV
+  synthese     vérification des citations et des lectures IA, fusion, état, lecture critique, suivi HTML, export
+               CSV, puis la liste des règles à une seule source (<hors>/regles_une_source.json, pour la lecture 3)
 
 Usage :
   python3 scripts/barometre.py --hors <dossier hors dépôt>                    # tout
@@ -26,7 +27,13 @@ Usage :
 Passage de nuit (--nuit) : un passage complet dure plusieurs heures. L'option vérifie que l'ordinateur est branché sur
 secteur (macOS : pmset), empêche la mise en veille pendant tout le passage (macOS : caffeinate -dimsu ; Linux :
 systemd-inhibit ; Windows : non géré, régler l'alimentation à la main) et écrit tout dans un journal daté
-(resultats/journal-barometre-AAAA-MM-JJ.log) à lire le matin. Sans secteur, il s'arrête (sauf --forcer).
+(resultats/journal-barometre-AAAA-MM-JJ.log). Sans secteur, il s'arrête (sauf --forcer). La nuit, --continuer est
+actif par défaut (un échec sur un site ne perd pas la nuit ; --arreter rétablit l'arrêt au premier échec).
+
+État du passage : à chaque commande lancée, resultats/etat-passage-AAAA-MM-JJ.json est réécrit (étapes, commandes,
+codes, durées, échecs, commande de reprise exacte). Le matin, `python3 scripts/bilan_journal.py` en affiche le bloc
+final, sans relire le journal. Code de sortie : 0 si tout a réussi, sinon le code de la commande en échec (arrêt) ou
+1 (avec --continuer, au moins un échec), 2 étape inconnue, 3 prérequis manquants, 4 sur batterie (--nuit).
 
 <dossier hors dépôt> reçoit ce qui ne doit pas entrer dans Git : textes des pages légales, DOM, captures, moteur
 Opquast. Les résultats versionnés vont dans resultats/<outil>-AAAA-MM-JJ/.
@@ -34,8 +41,10 @@ Opquast. Les résultats versionnés vont dans resultats/<outil>-AAAA-MM-JJ/.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import platform
+import shlex
 import shutil
 import subprocess
 import sys
@@ -77,12 +86,15 @@ def etapes(hors: Path, service: list[str]) -> dict[str, list[list[str]]]:
             nd + ["scripts/sources_panier.mjs", str(hors)],
             nd + ["scripts/sources_tiers.mjs", str(moteur / "public" / "engine"), str(hors)] + service],
         "synthese": [
-            py + ["scripts/verifier_citations.py", textes],
+            py + ["scripts/verifier_citations.py", textes]]
+        # validation des sorties des lectures IA avant la fusion (sautée tant que le script n'est pas livré)
+        + ([py + ["scripts/valider_lectures.py", str(hors)]] if (RACINE / "scripts" / "valider_lectures.py").exists() else []) + [
             py + ["scripts/fusion_scripts.py"],
             py + ["scripts/etat_barometre.py"],
             py + ["scripts/lecture_critique.py"],
             py + ["scripts/generer_suivi.py"],
-            py + ["scripts/exporter_csv.py"]],
+            py + ["scripts/exporter_csv.py"],
+            py + ["scripts/regles_une_source.py", str(hors)]],
     }
 
 
@@ -113,17 +125,41 @@ def nuit(a) -> int:
         print("Mise en veille non bloquée automatiquement sur ce système : réglez l'alimentation sur « jamais » "
               "(Windows : Paramètres > Système > Alimentation, ou PowerToys Awake).", file=sys.stderr)
         bloque = []
-    journal = RACINE / "resultats" / f"journal-barometre-{time.strftime('%Y-%m-%d')}.log"
+    jour = time.strftime('%Y-%m-%d')
+    journal = RACINE / "resultats" / f"journal-barometre-{jour}.log"
     args = [x for x in sys.argv[1:] if x not in ("--nuit", "--forcer")]
+    if "--arreter" not in args and "--continuer" not in args:
+        args.append("--continuer")  # la nuit, un échec sur un site ne perd pas le reste du passage
     cmd = bloque + [sys.executable, str(Path(__file__).resolve())] + args
     print(f"Passage de nuit lancé ({' '.join(bloque) or 'sans blocage de veille'}). Journal : {journal}", flush=True)
     with journal.open("a", encoding="utf-8") as j:
         j.write(f"\n===== début {time.strftime('%Y-%m-%d %H:%M:%S')} : {' '.join(cmd)}\n")
         j.flush()
-        r = subprocess.run(cmd, cwd=RACINE, stdout=j, stderr=subprocess.STDOUT, env={**os.environ, "BAROMETRE_EVEILLE": "1"})
+        r = subprocess.run(cmd, cwd=RACINE, stdout=j, stderr=subprocess.STDOUT, env={**os.environ, "BAROMETRE_EVEILLE": "1", "BAROMETRE_DATE": jour})
         j.write(f"===== fin {time.strftime('%Y-%m-%d %H:%M:%S')}, code {r.returncode}\n")
     print(f"Terminé (code {r.returncode}). Voir {journal}")
     return r.returncode
+
+
+def citer(cmd: list[str]) -> str:
+    return " ".join(shlex.quote(c) for c in cmd)
+
+
+def reprise(a, choix: list[str], echecs: list[dict]) -> str:
+    """Commande exacte qui relance le passage à partir de la première étape en échec (echecs non vide)."""
+    restant = choix[choix.index(echecs[0]["etape"]):]
+    cmd = ["python3", "scripts/barometre.py", "--hors", a.hors]
+    cmd += ["--depuis", restant[0]] if restant == ORDRE[ORDRE.index(restant[0]):] else ["--etapes", ",".join(restant)]
+    cmd += ["--service", a.service] if a.service else []
+    return citer(cmd)
+
+
+def ecrire_etat(etat: dict) -> Path:
+    """État machine du passage, lu par bilan_journal.py et compte_rendu.py (réécrit après chaque commande)."""
+    f = RACINE / "resultats" / f"etat-passage-{etat['date']}.json"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps(etat, ensure_ascii=False, indent=1), encoding="utf-8")
+    return f
 
 
 def main() -> int:
@@ -133,7 +169,8 @@ def main() -> int:
     ap.add_argument("--depuis", choices=ORDRE, help="lancer à partir de cette étape")
     ap.add_argument("--service", help="un seul site (nom exact de scripts/ecrans_en_ligne.csv)")
     ap.add_argument("--essai", action="store_true", help="afficher les commandes sans les lancer")
-    ap.add_argument("--continuer", action="store_true", help="ne pas s'arrêter quand une commande échoue")
+    ap.add_argument("--continuer", action="store_true", help="ne pas s'arrêter quand une commande échoue (défaut avec --nuit)")
+    ap.add_argument("--arreter", action="store_true", help="avec --nuit : s'arrêter au premier échec")
     ap.add_argument("--nuit", action="store_true", help="passage de nuit : secteur vérifié, veille bloquée, journal daté")
     ap.add_argument("--forcer", action="store_true", help="avec --nuit : lancer même sur batterie")
     a = ap.parse_args()
@@ -154,25 +191,56 @@ def main() -> int:
             print("\nPrérequis manquants : montrer cette liste à la personne et n'installer qu'avec son accord "
                   "(python3 scripts/verifier_installation.py --installer), puis relancer.", file=sys.stderr)
             return 3
-    bilan = []
-    for e in [x for x in ORDRE if x in choix]:
+    choix = [x for x in ORDRE if x in choix]
+    continuer = a.continuer and not a.arreter
+    etat = {"date": os.environ.get("BAROMETRE_DATE") or time.strftime("%Y-%m-%d"), "debut": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "fin": None, "termine": False, "code": None, "hors": str(hors), "service": a.service, "continuer": continuer,
+            "etapes_demandees": choix, "etapes": {e: {"statut": "à faire", "commandes": []} for e in choix},
+            "echecs": [], "reprise": None}
+    code = 0
+    for e in choix:
         print(f"\n=== {e}", flush=True)
         for cmd in plan[e]:
             cmd = resoudre(cmd)
             print("  $", " ".join(f'"{c}"' if " " in c else c for c in cmd), flush=True)
             if a.essai:
                 continue
+            etat["etapes"][e]["statut"] = "en cours"
             t = time.time()
             r = subprocess.run(cmd, cwd=RACINE)
-            bilan.append((e, Path(cmd[1]).name if len(cmd) > 1 else cmd[0], r.returncode, round(time.time() - t)))
-            if r.returncode != 0 and not a.continuer:
+            nom = Path(cmd[1]).name if len(cmd) > 1 else cmd[0]
+            etat["etapes"][e]["commandes"].append({"nom": nom, "commande": citer(cmd), "code": r.returncode, "duree_s": round(time.time() - t)})
+            if r.returncode != 0:
+                etat["echecs"].append({"etape": e, "nom": nom, "commande": citer(cmd), "code": r.returncode})
+                etat["reprise"] = reprise(a, choix, etat["echecs"])
+            ecrire_etat(etat)
+            if r.returncode != 0 and not continuer:
                 print(f"\nÉchec ({r.returncode}) : {' '.join(cmd)}. Corriger puis relancer avec --depuis {e}.", file=sys.stderr)
-                return r.returncode
-    if bilan:
-        print("\nBilan :")
-        for e, nom, code, s in bilan:
-            print(f"  {'ok ' if code == 0 else 'ÉCHEC'} {e:<11} {nom:<26} {s} s")
-    return 0
+                code = r.returncode
+                break
+        if a.essai:
+            continue
+        etat["etapes"][e]["statut"] = "échec" if any(x["code"] for x in etat["etapes"][e]["commandes"]) else "fait"
+        if code:
+            break
+    if a.essai:
+        return 0
+    code = code or (1 if etat["echecs"] else 0)
+    etat.update(fin=time.strftime("%Y-%m-%dT%H:%M:%S"), termine=True, code=code)
+    fichier = ecrire_etat(etat)
+    print("\n===== bilan du passage")
+    for e, v in etat["etapes"].items():
+        for c in v["commandes"]:
+            print(f"  {'ok   ' if c['code'] == 0 else 'ÉCHEC'} {e:<11} {c['nom']:<26} {c['duree_s']} s" + (f" (code {c['code']})" if c["code"] else ""))
+        if not v["commandes"]:
+            print(f"  {'-':<5} {e:<11} {'(non lancée)':<26}")
+    print(f"Échecs : {len(etat['echecs'])}")
+    for x in etat["echecs"]:
+        print(f"  {x['etape']} : {x['commande']} (code {x['code']})")
+    if etat["reprise"]:
+        print(f"Reprise : {etat['reprise']}")
+    print(f"État du passage : {fichier}", flush=True)
+    return code
 
 
 if __name__ == "__main__":
