@@ -53,7 +53,7 @@ def get(url: str) -> tuple[int, str, str]:
             return e.code, url, e.read().decode("utf-8", "replace") if e.fp else ""
         except (URLError, TimeoutError, OSError) as e:
             return 0, url, str(e)
-    return 429, url, ""
+    return 429, url, ""  # pragma: no cover  (inaccessible : le 3e essai renvoie toujours)
 
 
 def jsonld(html: str) -> list:
