@@ -31,3 +31,4 @@ __pycache__/
 coverage/
 htmlcov/
 node_modules/
+.ruff_cache/
