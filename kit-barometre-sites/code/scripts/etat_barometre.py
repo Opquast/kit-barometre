@@ -35,6 +35,11 @@ def dernier(motif: str) -> Path | None:
     return l[-1] if l else None
 
 
+def lire_json(chemin: Path, defaut):
+    """Contenu JSON du fichier, ou la valeur par défaut s'il n'existe pas."""
+    return json.loads(chemin.read_text(encoding="utf-8")) if chemin.is_file() else defaut
+
+
 def combine(statuts: list[str]) -> str:
     for s in ORDRE:
         if s in statuts:
@@ -55,11 +60,16 @@ def main() -> None:
     lien = lambda typ, site: {"nom": audits["noms"][typ].format(site=site), "url": audits["base"] + audits[typ][site]}
     scripts_dir = dernier("resultats/esm-scripts-*")
     basics_dir = dernier("resultats/esm-basics-*")
-    basics = json.loads((basics_dir / "resultats.json").read_text(encoding="utf-8"))
-    preuves_robot = json.loads((basics_dir / "preuves_nc.json").read_text(encoding="utf-8"))
+    # Sans export eServices Manager (kit neuf ou ESM non utilisé) : sources absentes, colonnes vides, pas d'erreur.
+    if basics_dir is None:
+        print("Aucun export Opquast basics (resultats/esm-basics-*) : verdicts du robot absents.")
+    if scripts_dir is None:
+        print("Aucune fusion des scripts (resultats/esm-scripts-*) : lancer d'abord scripts/fusion_scripts.py.")
+    basics = lire_json(basics_dir / "resultats.json", {"regles": {}}) if basics_dir else {"regles": {}}
+    preuves_robot = lire_json(basics_dir / "preuves_nc.json", {}) if basics_dir else {}
     sites = {}
     for code, nom in SITES.items():
-        pages = json.loads((scripts_dir / f"{code}.json").read_text(encoding="utf-8"))
+        pages = lire_json(scripts_dir / f"{code}.json", []) if scripts_dir else []
         regles: dict[int, dict] = {}
         for p in pages:
             for n, (st, com) in p["resultats"].items():

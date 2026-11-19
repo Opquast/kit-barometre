@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import csv
 import json
+from datetime import date
 from pathlib import Path
 
 RACINE = Path(__file__).resolve().parent.parent
@@ -41,8 +42,9 @@ PARCOURS = {
 }
 
 
-def dernier(motif: str) -> Path:
-    return sorted(RACINE.glob(motif))[-1]
+def dernier(motif: str) -> Path | None:
+    l = sorted(RACINE.glob(motif))
+    return l[-1] if l else None
 
 
 def proposition(n: int, robot: str | None, c: dict, nom: str) -> tuple[str, str]:
@@ -151,10 +153,20 @@ def trancher(n: int, robot: str | None, prop: str, p: dict) -> tuple[str | None,
 
 
 def main() -> None:
-    etat = json.loads(dernier("resultats/etat-*/etat.json").read_text(encoding="utf-8"))["sites"]
-    preuves = json.loads(dernier("resultats/esm-basics-*/preuves_nc.json").read_text(encoding="utf-8"))
+    f_etat = dernier("resultats/etat-*/etat.json")
+    if f_etat is None:
+        print("Aucun état consolidé (resultats/etat-*/etat.json) : lancer d'abord scripts/etat_barometre.py.")
+        return
+    etat = json.loads(f_etat.read_text(encoding="utf-8"))["sites"]
+    # Sans export eServices Manager ni contre-examen dans le navigateur : constats vides, décisions « à vérifier ».
+    f_preuves = dernier("resultats/esm-basics-*/preuves_nc.json")
+    preuves = json.loads(f_preuves.read_text(encoding="utf-8")) if f_preuves else {}
     dossier = dernier("resultats/contre-examen-*")
-    constats = json.loads((dossier / "constats.json").read_text(encoding="utf-8"))["sites"]
+    if dossier is None:
+        dossier = RACINE / "resultats" / f"contre-examen-{date.today():%Y-%m-%d}"
+        dossier.mkdir(parents=True, exist_ok=True)
+    f_constats = dossier / "constats.json"
+    constats = json.loads(f_constats.read_text(encoding="utf-8"))["sites"] if f_constats.is_file() else {}
     fp = sorted(RACINE.glob("resultats/parcours-*/parcours.json"))
     parcours = json.loads(fp[-1].read_text(encoding="utf-8")) if fp else {}
     recos = {x["code"]: x["recommandation"] for x in csv.DictReader((RACINE / "referentiel" / "recommandations.csv").open(encoding="utf-8"))}
