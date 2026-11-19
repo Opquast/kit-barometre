@@ -220,7 +220,7 @@ def controles_page(url: str, rep: dict) -> tuple[list[dict], dict]:
     analyse = Ressources()
     try:
         analyse.feed(texte)
-    except Exception:  # HTML très mal formé : on garde ce qui a été lu
+    except Exception:  # HTML très mal formé : on garde ce qui a été lu  # nosec B110: HTML mal formé, lecture partielle voulue
         pass
     http_res = [r["url"] for r in analyse.ressources if r["url"].startswith("http://")]
     out.append(res(200, NON_CONFORME if http_res else CONFORME,

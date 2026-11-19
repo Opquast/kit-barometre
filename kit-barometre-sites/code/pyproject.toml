@@ -1,0 +1,33 @@
+[project]
+name = "opquast-barometre"
+version = "0.0.0"
+requires-python = ">=3.12"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 200
+
+[tool.ruff.lint]
+# Règles de base (E4, E7, E9, F), fixées pour ne pas dépendre de la version de ruff. Les règles de pure présentation ci-dessous
+# sont désactivées car le code du kit les utilise volontairement (scripts compacts).
+select = ["E4", "E7", "E9", "F"]
+ignore = [
+  "E701",  # plusieurs instructions sur une ligne (deux-points)
+  "E702",  # plusieurs instructions sur une ligne (point-virgule)
+  "E731",  # lambda assignée à une variable
+  "E741",  # noms de variables ambigus (l, O, I)
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["scripts"]
+
+[tool.coverage.run]
+source = ["scripts"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+skip_covered = true
+exclude_also = ["if __name__ == .__main__.:"]

@@ -1,0 +1,7 @@
+# Bandit : sécurité du code Python (hook pre-push).
+# Les scripts du kit lancent volontairement des outils locaux (curl, node, redbot)
+# avec des arguments construits par le kit, jamais par une saisie extérieure.
+skips:
+  - B404  # import de subprocess
+  - B603  # subprocess sans shell
+  - B607  # exécutable cherché dans le PATH

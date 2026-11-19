@@ -44,7 +44,7 @@ def get(url: str) -> tuple[int, str, str]:
     time.sleep(DELAI)
     for essai in range(3):
         try:
-            with urlopen(Request(url, headers={"User-Agent": UA, "Accept-Language": "fr-FR,fr;q=0.9"}), timeout=30) as r:
+            with urlopen(Request(url, headers={"User-Agent": UA, "Accept-Language": "fr-FR,fr;q=0.9"}), timeout=30) as r:  # nosec B310: URL http(s) du parc ou d'un service connu
                 return r.status, r.geturl(), r.read().decode("utf-8", "replace")
         except HTTPError as e:
             if e.code == 429 and essai < 2:
@@ -59,7 +59,7 @@ def statut_lien(url: str) -> int:
     url = sur(url)
     time.sleep(1.5)
     try:
-        with urlopen(Request(url, method="HEAD", headers={"User-Agent": UA}), timeout=20) as r:
+        with urlopen(Request(url, method="HEAD", headers={"User-Agent": UA}), timeout=20) as r:  # nosec B310: URL http(s) du parc ou d'un service connu
             return r.status
     except HTTPError as e:
         return e.code

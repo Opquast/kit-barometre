@@ -101,7 +101,7 @@ Une nouvelle source s'ajoute dans `lecture_critique.py` (fonction `poser`) et da
    ```bash
    grep -rnoE "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}|(\+33 ?|\b0)[1-9]([ .-]?[0-9]{2}){4}\b" resultats/*-$(date +%F) suivi-barometre.html | grep -v "exemple\.\|@2x\|@media"
    ```
-2. **Page** : publier `suivi-barometre.html` avec l'outil Artifact sur la même adresse que le suivi existant (`https://claude.ai/artifact/12y1tK8TKX8uMtbi92d1Q8`) pour garder le lien.
+2. **Page** : publier `suivi-barometre.html` avec l'outil Artifact sur la même adresse que le suivi existant pour garder le lien. Cette adresse est propre au compte qui publie : elle se note dans `liens-locaux.json` (hors dépôt, entrée « Suivi du baromètre »), jamais dans les fichiers du kit.
 3. **CSV** : envoyer à Mattea, avec SendUserFile, les trois fichiers de `resultats/barometre-<date>/` : `barometre.csv` (une ligne par règle et par site, une colonne par type d'audit avec son verdict, puis le statut retenu et la décision), `tests.csv` (tous les tests effectués : une ligne par règle, site et audit, avec la famille d'audit, le verdict, la décision retenue, l'accord ou non avec elle et la raison quand l'audit a été contredit) et `scores.csv`. Séparateur « ; », UTF-8 avec BOM : s'ouvrent tels quels dans Excel.
 4. **eServices Manager** : reporter les statuts du relevé qui ont changé (audits « règles complémentaires » de `referentiel/audits-esm.json`) ; une règle absente d'un audit en cours va dans un nouvel audit « règles complémentaires N » (sélection ad hoc des critères, page d'accueil seule). Mattea doit être connectée.
 5. **Note de cadrage** : mettre à jour les chiffres (`note_cadrage.md`, une page A4 : `python3 scripts/verifier_page_a4.py`).

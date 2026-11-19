@@ -421,9 +421,20 @@ LIENS = [
     ("Checklist e-mail Colorz", "https://github.com/itsmatlsr/opquast-barometre/blob/main/referentiel/checklist-email.md", "41 critères et sources"),
     ("Cadrage détaillé", "https://github.com/itsmatlsr/opquast-barometre/blob/main/cadrage_detaille.md", "annexe écran par écran"),
     ("Analyse d'eServices Manager", "https://github.com/itsmatlsr/opquast-barometre/blob/main/eservices-manager.md", "plateforme et plan de saisie"),
-    ("Schéma du parc", "https://claude.ai/artifact/BsBzNF9kU4mxnsmnW4jbDs", "8 services"),
-    ("REDbot vs Opquast devtools", "https://claude.ai/artifact/CQS4jXzdxBrrEYe1nMeWHs", "accueil de Boutique F, 11 règles communes"),
 ]
+
+
+def liens_locaux(chemin: Path = RACINE / "liens-locaux.json") -> list[tuple[str, str, str]]:
+    """Liens propres à un compte (Artifacts publiés, par exemple), gardés hors dépôt.
+
+    Format : [{"titre": "...", "url": "...", "detail": "..."}, ...]
+    """
+    if not chemin.is_file():
+        return []
+    return [(lien["titre"], lien["url"], lien.get("detail", "")) for lien in json.loads(chemin.read_text(encoding="utf-8"))]
+
+
+LIENS += liens_locaux()
 
 
 def onglet_referentiels() -> str:
@@ -570,7 +581,7 @@ def bloc_etat_site(s: dict) -> str:
     for v in regles.values():
         for x in v["sources"]:
             audits[x["url"]] = x["nom"]
-    o = [f'<h3>Toutes les règles mesurées et recommandations</h3>',
+    o = ['<h3>Toutes les règles mesurées et recommandations</h3>',
          f'<p class="note">{len(st)} règles Opquast mesurées sur ce site : <strong>{c} conformes, {nc} non conformes</strong>, {na} non applicables, {nt} non tranchées. '
          f'Taux de conformité : <strong>{taux}</strong>. Une règle est non conforme dès qu\'une page l\'est, quelle que soit la source. '
          'La colonne « Résultat » donne ce qui tranche (outil, page, constat) ; la colonne « Audit » renvoie vers l\'audit eServices Manager où le résultat est saisi.</p>',
@@ -868,7 +879,6 @@ def liens_ecart(x: dict, nom: str, sid: str) -> str:
     basics = ("Opquast basics (robot)", b + AUD["basics"][nom])
     scripts = ("Opquast scripts sans IA", b + AUD["scripts"][nom])
     nu_acc = next(iter(OUTILS_LIGNE.get(nom, {}).get("nu", {}).values()), {}).get("details_url", "")
-    obs = OUTILS_LIGNE.get(nom, {}).get("observatory", {}).get("details_url", "")
     m = {"robot / scripts": [basics, scripts],
          "robot / contre-examen navigateur": [basics, ("Contre-examen (validé par Mattea)", b + AUD["contre_examen"][nom])],
          "nos outils entre eux": [scripts, ("Validateur Nu", nu_acc or f"#{sid}-nu")],
@@ -1321,7 +1331,6 @@ def moyenne(v):
 
 
 def coup_doeil_site(nom: str, regles: dict) -> str:
-    pages = _pages(nom)
     sc = scores_site(nom)
     aud = [(lib, sc[k], f"{sc[k]} %") for k, lib in (("opquast-scripts", "Scripts sans IA"), ("opquast-basics", "Robot basics"), ("contre-examen", "Contre-examen")) if sc.get(k) is not None]
     o = ['<div class="viz-grille">', svg_barres([("Score du baromètre", sc["global"], f'{sc["global"]} %, note {note_lettre(sc["global"])}')] + aud, 100, "Conformité Opquast : baromètre et audits"),
@@ -1716,7 +1725,6 @@ def git_log() -> list[tuple[str, str, str]]:
 def vue_ensemble(reseau: dict, dates: dict) -> str:
     sites = [x for x in SERVICES if x["cat"] == "E-commerce"]
     mails = [x for x in SERVICES if x["cat"] == "CRM"]
-    controles = [x for x in sites if x["reseau"] in reseau]
     nb_afaire = sum(len(items) for _, items in A_FAIRE)
     o = ['<section class="baros" aria-label="Les deux baromètres">',
          f'<a class="baro baro-sites" href="#barometre-sites"><span class="eyebrow">Baromètre 1</span><b>Sites</b>'

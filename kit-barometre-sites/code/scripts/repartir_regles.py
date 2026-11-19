@@ -66,13 +66,19 @@ OUTILS = {"IA": "eServices Manager, robot sur Opquast basics", "manuel": "Mattea
           "relevé": "scripts/releve_regles.mjs et regles_releve.py (Claude, à valider)"}
 
 
+def verifier(condition: bool, message: str) -> None:
+    """Contrôle de cohérence du référentiel, actif même avec python -O (contrairement à assert)."""
+    if not condition:
+        raise SystemExit(f"Répartition incohérente : {message}")
+
+
 def main() -> None:
     regles = json.loads((RACINE / "referentiel" / "opquast-checklist-v5.json").read_text(encoding="utf-8"))
-    assert len(IA) == 20
-    assert not (set(IA) & (RESEAU | PAGE)), set(IA) & (RESEAU | PAGE)
-    assert not (RESEAU & PAGE), RESEAU & PAGE
+    verifier(len(IA) == 20, f"{len(IA)} règles IA au lieu de 20")
+    verifier(not (set(IA) & (RESEAU | PAGE)), f"règles IA aussi en script : {set(IA) & (RESEAU | PAGE)}")
+    verifier(not (RESEAU & PAGE), f"règles à la fois réseau et page : {RESEAU & PAGE}")
     BASICS = {r["number"] for r in regles if "Basics" in " ".join(r["metadata"].get("Tags", []))}
-    assert len(BASICS) == 65
+    verifier(len(BASICS) == 65, f"{len(BASICS)} règles Basics au lieu de 65")
     # Retirées le 12/11 (décision de Mattea) : impossibles à tester sans créer de compte client, passer une commande payée
     # ou envoyer un vrai message ou une vraie inscription sur les sites des clients en production.
     NON_TESTABLES = {18, 23, 59, 60, 62, 63, 66, 110, 173}

@@ -16,7 +16,7 @@
 // Usage : node scripts/sources_tiers.mjs <moteur devtools public/engine> <dossier hors dépôt> [--service "…"]
 // Sortie : resultats/sources-AAAA-MM-JJ/tiers.json  { site: { url: { regle: [[statut, preuve, outil], …] } } }
 import { chromium, request } from 'playwright';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { HtmlValidate } from 'html-validate';
 import { Playwright } from '@siteimprove/alfa-playwright';

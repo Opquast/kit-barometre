@@ -106,7 +106,7 @@ def main() -> int:
                 continue
             deja.add(cmd)
             print(f"  $ {cmd}", flush=True)
-            r = subprocess.run(cmd, shell=True, cwd=RACINE)
+            r = subprocess.run(cmd, shell=True, cwd=RACINE)  # nosec B602: commandes d'installation écrites dans ce script, lancées après accord
             if r.returncode != 0:
                 print(f"    échec ({r.returncode}) : à faire à la main", file=sys.stderr)
         return main_sans_installer()

@@ -102,7 +102,7 @@ def main() -> None:
             time.sleep(args.delai)
         try:
             req = urllib.request.Request(SERVICE + urllib.parse.quote(e["url"], safe=""), headers={"User-Agent": UA})
-            page = urllib.request.urlopen(req, timeout=60).read().decode("utf-8", "replace")
+            page = urllib.request.urlopen(req, timeout=60).read().decode("utf-8", "replace")  # nosec B310: URL http(s) du parc ou d'un service connu
         except Exception as ex:  # service indisponible ou page refusée : non testé, sans nouvelle tentative
             fiche["non_teste"] = f"i18n checker : {ex}"
             print(f"{e['service']} | {e['gabarit']} | non testé ({ex})")

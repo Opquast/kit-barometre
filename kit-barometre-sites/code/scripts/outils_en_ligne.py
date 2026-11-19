@@ -27,7 +27,7 @@ UA = "Opquast-barometre-Colorz/0.3 (outils en ligne, lecture seule)"
 
 def get(url: str, methode: str = "GET", timeout: int = 90) -> dict:
     req = urllib.request.Request(url, method=methode, headers={"User-Agent": UA})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with urllib.request.urlopen(req, timeout=timeout) as r:  # nosec B310: URL http(s) du parc ou d'un service connu
         return json.loads(r.read().decode("utf-8", "replace"))
 
 

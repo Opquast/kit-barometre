@@ -3,3 +3,4 @@ node_modules/
 resultats/
 __pycache__/
 *.log
+liens-locaux.json

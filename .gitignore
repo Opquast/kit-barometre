@@ -23,3 +23,11 @@ Thumbs.db
 
 # Archives (le contenu décompressé est versionné)
 *.zip
+
+# Environnements et couverture
+.venv/
+__pycache__/
+.coverage
+coverage/
+htmlcov/
+node_modules/
