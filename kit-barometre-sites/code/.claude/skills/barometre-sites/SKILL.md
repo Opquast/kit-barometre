@@ -14,7 +14,7 @@ Périmètre : `scripts/ecrans_en_ligne.csv` (6 boutiques, 47 écrans). Règles m
 - Sites clients en production : **aucune commande, aucun paiement, aucun envoi de formulaire, aucune création de compte**. Ajouter un article au panier et afficher la page de paiement sans rien saisir est admis.
 - **Aucun contournement** de vérification anti-robot ou de limitation (429) : la page est notée « non testé » avec la raison.
 - Seul clic autorisé sur un site : **refuser les cookies** (choix le plus protecteur).
-- **Aucune donnée personnelle** dans le dépôt, les rapports ou les commentaires ESM : noms, e-mails, téléphones masqués (les scripts le font ; vérifier avant chaque commit avec la commande de la section Publication).
+- **Aucune donnée personnelle** dans le dépôt, les rapports ou les commentaires ESM : noms, e-mails, téléphones masqués (les scripts le font ; vérifier avant chaque commit avec `scripts/verifier_publication.py`, voir la section Publication).
 - Textes légaux, DOM, captures et moteur Opquast restent **hors du dépôt**, dans le dossier `--hors` (le dossier temporaire de session est vidé entre deux sessions).
 - eServices Manager : **jamais de robot payant** sans l'accord de Mattea ; ne jamais saisir ses identifiants (elle se connecte elle-même dans le volet navigateur).
 - Aucun tiret long « — » dans les livrables. Commit et push après chaque étape terminée.
@@ -73,10 +73,16 @@ Options : `--etapes synthese` (seulement le rapport et le CSV, quelques secondes
 | sources | deuxièmes sources : axe et IBM complémentaires, Shopify public, HTML brut et CSS, curl, API panier, outils tiers | `resultats/sources-<date>/*.json` |
 | synthese | vérifie les citations, fusionne, recoupe, tranche, génère la page et les CSV | `suivi-barometre.html`, `resultats/barometre-<date>/` (barometre, tests, scores) |
 
-Entre `sources` et `synthese`, faire les deux étapes qui demandent Claude ou ESM :
+Après `sources`, les étapes qui demandent Claude ou ESM se font **dans cet ordre** (la lecture 3 dépend de la première synthèse) :
 
-1. **Lectures IA indépendantes** (sources probabilistes, à preuve vérifiée). Lancer en arrière-plan les sous-agents décrits dans `references/lectures-independantes.md` : textes légaux, captures, DOM et page de paiement, deux lots de trois sites chacun. Ils ne lisent jamais `resultats/` (indépendance). Une réponse « conforme » n'est retenue que si sa citation ou son extrait est retrouvé mot pour mot (`verifier_citations.py`, lancé par l'étape `synthese`).
-2. **Robot Opquast basics d'eServices Manager** : réutiliser le dernier export (`resultats/esm-basics-*`) tant qu'aucun nouvel audit basics n'a été lancé. Un nouvel audit ne se lance qu'avec l'accord de Mattea.
+1. **En parallèle** : lancer en arrière-plan les lectures IA 1 (textes légaux) et 2 (captures) décrites dans `references/lectures-independantes.md`, deux lots de trois sites chacun, et pendant ce temps la première synthèse : `python3 scripts/barometre.py --hors <hors> --etapes synthese`. Les sous-agents ne lisent jamais `resultats/` (indépendance).
+2. **Règles à une seule source** : `python3 scripts/regles_une_source.py <hors>` écrit `<hors>/regles_une_source.json`, la liste par site des règles restées à moins de deux sources.
+3. **Lecture 3** (DOM, captures et paiement) : lancer les sous-agents sur cette liste seulement.
+4. **Synthèse finale** : quand les trois lectures sont rendues, relancer `--etapes synthese`. Une réponse « conforme » d'une lecture IA n'est retenue que si sa citation ou son extrait est retrouvé mot pour mot (`scripts/verifier_citations.py`, lancé par la synthèse).
+
+**Robot Opquast basics d'eServices Manager** : réutiliser le dernier export (`resultats/esm-basics-*`) tant qu'aucun nouvel audit basics n'a été lancé. Un nouvel audit ne se lance qu'avec l'accord de Mattea.
+
+**Sans eServices Manager** (kit neuf, ou ESM non utilisé) : la synthèse tourne quand même. Les verdicts du robot et les liens vers les audits sont absents, la fiche de contre-examen part de constats vides et les règles concernées restent « non testé » ou « à vérifier ». Le dire dans le compte rendu.
 
 ## Trancher les écarts
 
@@ -97,18 +103,15 @@ Une nouvelle source s'ajoute dans `lecture_critique.py` (fonction `poser`) et da
 
 ## Publication
 
-1. **Données personnelles** : la commande suivante ne doit rien renvoyer d'autre que des adresses d'exemple :
-   ```bash
-   grep -rnoE "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}|(\+33 ?|\b0)[1-9]([ .-]?[0-9]{2}){4}\b" resultats/*-$(date +%F) suivi-barometre.html | grep -v "exemple\.\|@2x\|@media"
-   ```
-2. **Page** : publier `suivi-barometre.html` avec l'outil Artifact sur la même adresse que le suivi existant pour garder le lien. Cette adresse est propre au compte qui publie : elle se note dans `liens-locaux.json` (hors dépôt, entrée « Suivi du baromètre »), jamais dans les fichiers du kit.
+1. **Données personnelles** : `python3 scripts/verifier_publication.py` doit sortir avec le code 0. Il lit les dossiers du **dernier passage** (la date la plus récente de `resultats/`, même si le passage de nuit a commencé la veille) et `suivi-barometre.html`. Code 1 : une adresse e-mail ou un téléphone a été trouvé, le masquer avant tout commit. Code 2 : aucun fichier n'a été lu, la vérification n'a pas eu lieu. Le relancer avant **chaque** commit.
+2. **Page** : publier `suivi-barometre.html` avec l'outil Artifact sur la même adresse que le suivi existant pour garder le lien. Cette adresse est propre au compte qui publie : elle se lit dans `liens-locaux.json` (hors dépôt, entrée « Suivi du baromètre »), jamais dans les fichiers du kit. Si l'entrée n'existe pas (premier passage sur ce compte), publier une nouvelle page, puis noter son adresse dans `liens-locaux.json` ({"titre": "Suivi du baromètre", "url": "…", "detail": ""}) pour les passages suivants.
 3. **CSV** : envoyer à Mattea, avec SendUserFile, les trois fichiers de `resultats/barometre-<date>/` : `barometre.csv` (une ligne par règle et par site, une colonne par type d'audit avec son verdict, puis le statut retenu et la décision), `tests.csv` (tous les tests effectués : une ligne par règle, site et audit, avec la famille d'audit, le verdict, la décision retenue, l'accord ou non avec elle et la raison quand l'audit a été contredit) et `scores.csv`. Séparateur « ; », UTF-8 avec BOM : s'ouvrent tels quels dans Excel.
 4. **eServices Manager** : reporter les statuts du relevé qui ont changé (audits « règles complémentaires » de `referentiel/audits-esm.json`) ; une règle absente d'un audit en cours va dans un nouvel audit « règles complémentaires N » (sélection ad hoc des critères, page d'accueil seule). Mattea doit être connectée.
 5. **Note de cadrage** : mettre à jour les chiffres (`note_cadrage.md`, une page A4 : `python3 scripts/verifier_page_a4.py`).
-6. **Commit et push** sur le dépôt personnel, puis dire à Mattea : scores et notes par site, part des statuts à deux sources ou plus, écarts tranchés et à arbitrer, ce qui n'a pas pu être mesuré et pourquoi.
+6. **Commit et push** sur le dépôt personnel, après un dernier `python3 scripts/verifier_publication.py` à 0, puis dire à Mattea : scores et notes par site, part des statuts à deux sources ou plus, écarts tranchés et à arbitrer, ce qui n'a pas pu être mesuré et pourquoi.
 
 ## Fichiers utiles
 
-- `scripts/barometre.py` : l'enchaînement. `scripts/exporter_csv.py` : les trois CSV (détail par règle avec une colonne par type d'audit, tous les tests avec leur décision, scores).
+- `scripts/barometre.py` : l'enchaînement. `scripts/verifier_publication.py` : contrôle des données personnelles avant commit et publication. `scripts/regles_une_source.py` : liste des règles à une seule source, pour la lecture 3. `scripts/exporter_csv.py` : les trois CSV (détail par règle avec une colonne par type d'audit, tous les tests avec leur décision, scores).
 - `references/lectures-independantes.md` : consignes des sous-agents de lecture.
 - `referentiel/recommandations.csv` et `referentiel/exemples.json` : une recommandation et un exemple clé en main par règle non conforme.
