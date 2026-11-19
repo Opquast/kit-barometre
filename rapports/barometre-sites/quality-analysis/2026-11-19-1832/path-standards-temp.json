@@ -1,0 +1,54 @@
+{
+  "scanner": "path-standards",
+  "script": "scan-path-standards.py",
+  "version": "3.0.0",
+  "skill_path": "/Users/mickaelh/Documents/Opquast/Test Formation/kit-barometre-sites/code/.claude/skills/barometre-sites",
+  "timestamp": "2026-11-19T14:32:33.732147+00:00",
+  "files_scanned": [
+    "INSTALLER-AVEC-UN-ASSISTANT-IA.md",
+    "SKILL.md",
+    "references/lectures-independantes.md"
+  ],
+  "status": "fail",
+  "findings": [
+    {
+      "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md",
+      "line": 0,
+      "severity": "high",
+      "category": "structure",
+      "title": "Prompt file at skill root: INSTALLER-AVEC-UN-ASSISTANT-IA.md",
+      "detail": "All progressive disclosure content must be in ./references/ \u2014 only SKILL.md belongs at root",
+      "action": "Move INSTALLER-AVEC-UN-ASSISTANT-IA.md to references/INSTALLER-AVEC-UN-ASSISTANT-IA.md"
+    },
+    {
+      "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md",
+      "line": 51,
+      "severity": "high",
+      "category": "relative-prefix",
+      "title": "Parent directory reference (../) found \u2014 fragile, breaks with reorganization",
+      "detail": "Faites un essai \u00e0 blanc : `python3 scripts/barometre.py --hors ../hors --essai`.",
+      "action": ""
+    }
+  ],
+  "assessments": {},
+  "summary": {
+    "total_findings": 2,
+    "by_severity": {
+      "critical": 0,
+      "high": 2,
+      "medium": 0,
+      "low": 0
+    },
+    "by_category": {
+      "double_prefix": 0,
+      "bare_bmad": 0,
+      "absolute_path": 0,
+      "relative_prefix": 1,
+      "cross_dir_dot_slash": 0,
+      "memory_path": 0,
+      "frontmatter": 0,
+      "structure": 1
+    },
+    "assessment": "Path standards scan complete"
+  }
+}
