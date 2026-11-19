@@ -91,6 +91,16 @@ repos:
         types: [text]
         exclude: (^rapports/|^\.pre-commit-config\.yaml$|^outils/verifications/partage\.py$|(^|/)tests/)
 
+      # --- Tests Python, couverture exigée à 100 % (avant push) ---
+      - id: tests-couverture
+        name: tests Python (couverture 100 %)
+        entry: outils/verifications/tests_couverture.sh
+        language: python
+        additional_dependencies: [pytest==9.0.3, pytest-cov==7.1.0, openpyxl==3.1.5, pyyaml==6.0.3]
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
       # --- Dépendances Node (avant push) ---
       - id: npm-audit
         name: npm audit (dépendances du kit)

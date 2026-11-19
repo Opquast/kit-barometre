@@ -21,6 +21,14 @@ pre-commit install --install-hooks
 - **Avant chaque commit** : JSON, YAML et TOML valides ; ruff (Python, config `kit-barometre-sites/code/pyproject.toml`) ; `node --check` et ESLint (config `kit-barometre-sites/code/eslint.config.mjs`) ; gitleaks (secrets) ; structure des skills (frontmatter, fichiers cités) ; données personnelles dans les CSV et Excel ; partage (chemins absolus `/Users/…`, URL d'Artifact claude.ai) ; fichiers de plus de 1 Mo refusés.
 - **Avant chaque push** : structure des skills, bandit (sécurité Python, config `.bandit.yaml`), `npm audit` (dépendances du kit), tests avec couverture à 100 %.
 - **Hors hooks** : la quality analysis BMAD se lance à la main, de temps en temps.
+
+## Tests
+
+- Couverture exigée : **100 %** (lignes et branches), vérifiée avant chaque push par `outils/verifications/tests_couverture.sh`.
+- Tests du kit : `kit-barometre-sites/code/tests/` (config dans `kit-barometre-sites/code/pyproject.toml`) ; tests des scripts de contrôle : `outils/tests/` (config dans `outils/pyproject.toml`).
+- Les tests n'accèdent jamais au réseau ni aux sites : HTTP, DNS, TLS, sous-processus et services en ligne sont simulés, et chaque test écrit dans un dossier temporaire (fixture `racine` de `tests/conftest.py`).
+- Lancer à la main, depuis le dossier de la suite : `python -m pytest --cov` (environnement `.venv` à la racine : `python3 -m venv .venv && .venv/bin/pip install pytest pytest-cov openpyxl pyyaml`).
+- Une ligne réellement inaccessible se marque `# pragma: no cover` avec sa raison ; tout nouveau code arrive avec ses tests.
 - Les scripts de contrôle maison sont dans `outils/verifications/`. Une exception bandit se justifie en ligne (`# nosec Bxxx: raison`).
 - Les liens propres à un compte (URL d'Artifact publiés) vont dans `kit-barometre-sites/code/liens-locaux.json`, ignoré par git.
 - **Sécurité** : ne jamais committer de secrets (mots de passe, clés d'API, jetons, fichiers `.env`).
