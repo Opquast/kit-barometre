@@ -20,9 +20,9 @@ Entrées : `<hors>/captures/<préfixe>__<gabarit>__haut.jpg` et `.jpg` (page ent
 
 ## 3. DOM, captures et paiement (`lecture_dom_lot1.json`, `lecture_dom_lot2.json`)
 
-Entrées : `<hors>/dom/*.html`, `<hors>/captures/`, `<hors>/paiement/<préfixe>.txt` et `.jpg`. Règles : celles qui restent à une seule source après l'étape `synthese` (les lister par site dans un fichier JSON passé au sous-agent). Preuve obligatoire sous l'une de deux formes, vérifiée ensuite :
+Entrées : `<hors>/dom/*.html`, `<hors>/captures/`, `<hors>/paiement/<préfixe>.txt` et `.jpg`. Règles : celles de `<hors>/regles_une_source.json`, écrit par `python3 scripts/regles_une_source.py <hors>` après la première synthèse (lectures 1 et 2 lancées en parallèle de cette synthèse, lecture 3 seulement ensuite). Passer au sous-agent la liste de son lot, jamais `resultats/`. Preuve obligatoire sous l'une de deux formes, vérifiée ensuite :
 - `dom: <fichier> | <extrait exact de 20 à 160 caractères>` (introuvable mot pour mot = rejeté) ;
 - `capture: <fichier .jpg> | <ce qui est vu>` (jugement visuel).
 Règles du tunnel (35, 36, 41, 44, 52, 56, 57, 86, 88, 89) : seulement sur `paiement/`, sinon NT.
 
-Après les lectures : relancer `python3 scripts/barometre.py --hors <hors> --etapes synthese`, puis trancher les nouveaux écarts.
+Après la lecture 3 : relancer `python3 scripts/barometre.py --hors <hors> --etapes synthese` (synthèse finale), puis trancher les nouveaux écarts.
