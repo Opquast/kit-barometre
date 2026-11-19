@@ -31,22 +31,24 @@ Le script ne modifie rien. Il vérifie : Node.js 22 ou plus et npm, les paquets 
 S'il manque quelque chose : montrez la liste à la personne, demandez son accord (tout, une partie ou rien), puis seulement :
 
 ```bash
-python3 scripts/verifier_installation.py --installer
+python3 scripts/verifier_installation.py --hors ../hors --installer
 ```
 
 Il lance `npm ci --ignore-scripts` (versions du fichier de verrouillage, sans scripts d'installation), `npx playwright install chromium`, `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`, et les outils système par Homebrew (macOS) ou apt (Linux). Sous Windows, passez par WSL (Ubuntu). Si un mot de passe est demandé, c'est la personne qui le tape. Relancez ensuite la vérification.
 
 ## Étape 3 : adapter le baromètre aux sites de la personne
 
-Le code a été écrit pour un parc de six boutiques, anonymisées ici en « Boutique A » à « Boutique F ». Remplacez-les par les sites de la personne. Demandez-lui la liste, et vérifiez qu'elle a le droit de les auditer.
+Le parc tient dans deux fichiers ; aucun script ne contient de nom de site ni de personne. Demandez à la personne la liste de ses sites, et vérifiez qu'elle a le droit de les auditer.
 
 | Fichier | À faire |
 |---|---|
 | `scripts/ecrans_en_ligne.csv` | une ligne par écran : `service,gabarit,url` (accueil, collection, fiche produit, panier, recherche, compte, pages de contenu ; l'accueil en premier) |
-| `scripts/etat_barometre.py` (`SITES`), `scripts/fusion_scripts.py` (`SERVICES`), `scripts/generer_suivi.py` (`SERVICES`), `scripts/import_esm.py` (`SERVICES`), `scripts/generer_schema.py` (`SITES`) | remplacer les six boutiques par les sites de la personne (nom affiché, code court) |
+| `referentiel/parc.json` | créé ou complété par `python3 scripts/configurer_parc.py --responsable "Prénom Nom" --auditeur-esm ABC`, puis relu (codes ESM, plateforme, compte e-mail) et vérifié par `python3 scripts/configurer_parc.py --verifier` (code 0) |
 | `referentiel/audits-esm.json` | identifiants des audits eServices Manager, si la personne utilise ESM ; sinon laisser le modèle |
 | `referentiel/exclusions-sites.json` | règles retirées pour un site donné, avec la raison (au départ : vide) |
-| `scripts/lecture_critique.py` (`ANALYSE_SOURCES`) | décisions propres aux anciens sites : garder les lignes `("*", …)` (générales), retirer celles qui nomment une boutique |
+| `scripts/lecture_critique.py` (`ANALYSE_SOURCES`) | décisions propres aux anciens sites : garder les lignes `("*", …)` (générales), retirer celles qui nomment un site |
+
+Le détail des champs de `parc.json` est dans la section « Adapter le kit à un autre parc » de `SKILL.md`.
 
 Faites un essai à blanc : `python3 scripts/barometre.py --hors ../hors --essai`.
 
@@ -87,11 +89,7 @@ Un passage complet dure plusieurs heures : chaque site reçoit au plus une requ�
 python3 scripts/barometre.py --hors ../hors --nuit
 ```
 
-`--nuit` bloque la mise en veille (macOS : `caffeinate -dimsu` ; Linux : `systemd-inhibit` ; Windows : régler l'alimentation sur « jamais » ou utiliser PowerToys Awake) et écrit tout dans `resultats/journal-barometre-<date>.log`. Le lendemain matin : lire le journal, reprendre une étape en échec avec `--depuis <étape>`, puis faire les lectures indépendantes (référence `references/lectures-independantes.md`) et la synthèse :
-
-```bash
-python3 scripts/barometre.py --hors ../hors --etapes synthese
-```
+`--nuit` bloque la mise en veille et continue après un échec ; le détail (Windows compris), la reprise du matin (`scripts/bilan_journal.py`) et l'ordre des lectures indépendantes sont dans la section « Déroulé d'un nouveau passage » de `SKILL.md`, qui fait foi.
 
 ## Étape 6 : trancher, vérifier, livrer
 
