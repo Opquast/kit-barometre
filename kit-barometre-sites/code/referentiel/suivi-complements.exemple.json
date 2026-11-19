@@ -1,0 +1,15 @@
+{
+ "_aide": "Exemple de compléments propres à une mission, lus par scripts/generer_suivi.py s'ils sont copiés dans referentiel/suivi-complements.json (fichier facultatif). Toutes les clés sont facultatives.",
+ "services": {
+  "Ma boutique": {
+   "tests": [["05/11", "Accès aux écrans", "navigateur", "ok", "Tous les écrans s'ouvrent"]],
+   "afaire": ["Contrôler dans le navigateur les pages bloquées pour le robot"]
+  }
+ },
+ "fait": [["Cadrage", [["Note de cadrage validée", "une page A4"]]]],
+ "a_faire": [["Mesure", [["Relancer axe-core sur tous les écrans", "en mode nuit"]]]],
+ "liens": [["Dépôt du projet", "https://github.com/exemple/kit-barometre", "versions et preuves"]],
+ "scores_basics": {"Ma boutique": 55},
+ "jalons": [["ok", "Cadrage ✓"], ["cur", "Audits"], ["", "Baromètre"]],
+ "pied": "Sources : dépôt du projet, résultats des passages (resultats/)."
+}

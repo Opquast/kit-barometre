@@ -1,0 +1,16 @@
+{
+ "_aide": "Parc mesuré par le baromètre : un objet par site, dans le même ordre que scripts/ecrans_en_ligne.csv. Généré ou vérifié par scripts/configurer_parc.py. responsable : la personne qui valide les décisions et arbitre les écarts (affichée dans les rapports) ; auditeur_esm : son code court dans eServices Manager.",
+ "responsable": "la personne responsable du baromètre",
+ "auditeur_esm": "",
+ "sites": [
+  {
+   "nom": "Ma boutique",
+   "code_esm": "WEB-MABOUTIQUE",
+   "prefixe_pages": "MB",
+   "plateforme": "shopify",
+   "compte_client_hors_site": true,
+   "prefixe_langue": "",
+   "compte_email": ""
+  }
+ ]
+}

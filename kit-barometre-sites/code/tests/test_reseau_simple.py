@@ -14,6 +14,7 @@ import pytest
 import outils_en_ligne as oel
 import repartir_regles as rr
 import sources_curl as sc
+from aide_parc import poser_parc
 from conftest import ecrire_json, lire_json
 
 
@@ -26,7 +27,7 @@ def test_verifier():
 
 
 def test_repartir_regles(racine, capsys):
-    r = racine(rr)
+    r = poser_parc(racine, rr)
     ecrire_json(r / "resultats/releve-2026-11-12/decisions.json", {
         "Boutique A": {"1": ["C", "x"], "16": ["NC", "x"], "18": ["C", "x"], "2": ["NT", "x"]}})
     rr.main()
@@ -40,6 +41,9 @@ def test_repartir_regles(racine, capsys):
     assert lignes[197]["raison"].startswith("Se mesure sur les échanges HTTP ou le DNS")
     assert lignes[182]["raison"] == "Couverte par axe-core (WCAG)."
     assert lignes[3]["methode"] == "page" and "code de la page" in lignes[3]["raison"]
+    manuel = next(l for l in lignes.values() if l["methode"] == "manuel")
+    assert manuel["outil"].startswith("Mattea, contre-examen") and manuel["raison"].endswith("contre-examiné par Mattea.")
+    assert lignes[33]["raison"].endswith("à valider par Mattea.")
     assert "245" in capsys.readouterr().out
 
 

@@ -15,6 +15,8 @@ Chromium, mais les données que Shopify publie pour les machines :
 Règles tranchées : 1, 34, 47, 129 (pays des adresses), 223, 225, 231. Les textes des politiques servent à la lecture
 indépendante des règles de contenu (scripts/lecture_independante, résultats dans resultats/sources-*/lecture_ia.json).
 
+Ne tourne que sur les sites dont la plateforme est « shopify » dans referentiel/parc.json (ou absents du parc).
+
 Usage : python3 scripts/sources_shopify.py <dossier hors dépôt pour les textes> [--delai 8]
 Sortie : resultats/sources-AAAA-MM-JJ/shopify.json  { site: { regle: [statut, preuve, outil] } }
 """
@@ -32,6 +34,8 @@ from html import unescape
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+import parc
 
 RACINE = Path(__file__).resolve().parent.parent
 UA = "Opquast-barometre-Colorz/0.3.0 (sources publiques Shopify, lecture seule)"
@@ -93,13 +97,18 @@ def main() -> int:
     sortie.mkdir(parents=True, exist_ok=True)
     f = sortie / "shopify.json"
     res = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+    sites = parc.par_nom()
     for nom in dict.fromkeys(e["service"] for e in ecrans):
         if res.get(nom, {}).get("_fini"):
+            continue
+        plateforme = sites.get(nom, {}).get("plateforme", "shopify")  # site absent du parc : Shopify par défaut
+        if plateforme != "shopify":
+            print(f"== {nom} : plateforme {plateforme}, sources Shopify sans objet", flush=True)
             continue
         ec = [e for e in ecrans if e["service"] == nom]
         accueil = ec[0]["url"].rstrip("/")
         base = re.match(r"https?://[^/]+", accueil).group(0)
-        prefixe_langue = accueil[len(base):]  # /fr chez Boutique D
+        prefixe_langue = accueil[len(base):]  # /fr si la version auditée est sous un préfixe de langue
         r: dict = {}
         print("==", nom, flush=True)
 

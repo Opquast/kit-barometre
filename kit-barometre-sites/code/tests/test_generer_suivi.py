@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import copy
 import csv
 from datetime import date
 from types import SimpleNamespace
@@ -11,10 +10,14 @@ import pytest
 
 import exporter_csv as ex
 import generer_suivi as g
+from aide_parc import PARC_ORIGINE, poser_parc
 from conftest import ecrire_json, lire_json
 
 GLOBAUX = ("ETAT", "EXEMPLES", "LECTURE", "FICHE", "OUTILS_PAGES", "OUTILS_LIGNE", "PARCOURS_RES", "RELEVE", "AUD", "RECOS",
-           "METH", "RAISON", "EXCLUSIONS", "AXE")
+           "METH", "RAISON", "EXCLUSIONS", "AXE", "COMPLEMENTS")
+PARC_SUIVI = dict(PARC_ORIGINE, sites=[x for x in PARC_ORIGINE["sites"] if x["nom"] in ("Boutique A", "Boutique C", "Boutique F")])
+ECRANS = ("service,gabarit,url\nBoutique A,Accueil,https://a.fr/\nBoutique A,Recherche,https://a.fr/search?q=x\n"
+          "Boutique C,Produit,https://c.fr/products/p\n")
 PAGE_HTML = ('<html><head><style>body{} /* Onglets */ .ancien{} @media (prefers-reduced-motion: reduce){}</style></head>'
              '<body><div class="wrap">ancien</div></body></html>')
 CHECKLIST = ("id,theme,critere,verification,regle_opquast,source\n"
@@ -31,11 +34,13 @@ def regle(statut, titre="Titre", scripts=None, robot=None, sources=None, pages_n
 
 @pytest.fixture
 def gs(racine, monkeypatch):
-    r = racine(g, ex)
+    r = poser_parc(racine, g, ex, donnees=PARC_SUIVI)
     for nom in GLOBAUX:
         monkeypatch.setattr(g, nom, {})
-    services = copy.deepcopy([s for s in g.SERVICES if s["nom"] in ("Boutique A", "Boutique C", "Klaviyo Boutique C", "Klaviyo Boutique F")])
-    monkeypatch.setattr(g, "SERVICES", services)
+    for nom in ("FAIT", "A_FAIRE", "LIENS"):
+        monkeypatch.setattr(g, nom, [])
+    (r / "scripts" / "ecrans_en_ligne.csv").write_text(ECRANS, encoding="utf-8")
+    monkeypatch.setattr(g, "SERVICES", g.construire_services())
     monkeypatch.setattr(g, "PAGE", r / "suivi-barometre.html")
     monkeypatch.setattr(g, "RESEAU_DIR", r / "resultats")
     monkeypatch.setattr(g, "git_log", lambda: [("abc123", "12/11 10:00", "Fusion de la branche"), ("def456", "12/11 11:00", "Ajout")])
@@ -168,7 +173,7 @@ def test_main_complet(gs, capsys):
     assert html.startswith("<html><head><style>body{} ") and ".ancien" not in html and "/* Onglets */" in html
     assert "—" not in html and 'id="boutique-a"' in html and 'id="klaviyo-boutique-f"' in html
     for morceau in ("Baromètre des sites", "Lecture critique : faux positifs", "Contre-examen manuel et parcours réels",
-                    "Recoupement par les outils", "Fusion de la branche", "Les 41 critères de la checklist e-mail",
+                    "Recoupement par les outils", "Fusion de la branche", "Les 4 critères de la checklist e-mail",
                     "Lecture critique : recoupement par axe-core et checkdmarc", "à arbitrer par Mattea", "Sans objet ici"):
         assert morceau in html, morceau
     etat = g.ETAT["sites"]["Boutique A"]
@@ -250,6 +255,9 @@ def test_indicateurs_de_navigation(gs):
     assert "conformes, aucun non conforme" in g.THEME_COMPTE("Klaviyo Boutique C", "A")
     g.ETAT["emails"]["Klaviyo Boutique C"]["EM01"]["statut"] = "NC"
     assert "1 non conforme(s) sur 1" in g.THEME_COMPTE("Klaviyo Boutique C", "A")
+    assert g.RESUME_MAILS() == "1 compte(s) évalué(s) : 1 à 1 critères non conformes ; 1 à connecter"
+    g.ETAT["emails"]["Klaviyo Boutique F"] = {"EM01": {"statut": "C", "theme": "A"}}
+    assert g.RESUME_MAILS() == "1 compte(s) évalué(s) : 0 à 1 critères non conformes".replace("1 compte(s)", "2 compte(s)")
 
 
 def test_exemple_reco_acc_lien(gs):
@@ -263,7 +271,9 @@ def test_exemple_reco_acc_lien(gs):
 def test_composants(gs, monkeypatch):
     monkeypatch.setattr(g, "AUD", {"base": "https://esm/", "scripts": {"A": "s"}, "basics": {"A": "b"}, "contre_examen": {}})
     assert g.comp_scripts("A", {"1": {"scripts": "C"}, "2": {"scripts": None}})[0] == "1 conformes, 0 non conformes"
-    assert g.comp_basics("A", {})[0] == "score - %"
+    assert g.comp_basics("A", {})[0] == "score -"
+    g.COMPLEMENTS["scores_basics"] = {"A": 53.1}
+    assert g.comp_basics("A", {}) == ("score 53,1 %", "ok", "https://esm/b") and g.scores_site("A")["opquast-basics"] == 53
     assert g.comp_ce("A", {}) == ("à faire", "afaire", "")
     g.FICHE["A"] = [{"decision_statut": "NC"}, {"decision_statut": None}]
     assert g.comp_ce("A", {})[2] == "" and "1 / 2 tranchées" in g.comp_ce("A", {})[0]
@@ -384,7 +394,7 @@ def test_bloc_recoupement_sans_sources(gs):
 def test_onglet_compte_email_variantes(gs, monkeypatch):
     s = next(x for x in g.SERVICES if x["nom"] == "Klaviyo Boutique F")
     h = g.onglet_compte_email(s)
-    assert "Accès au compte Klaviyo" in h and "Pas encore évalué." in h
+    assert "Accès au compte e-mail" in h and "Pas encore évalué." in h and "MAJ-EM-POPUP" not in h and "<th>Pied de page</th>" in h
     g.ETAT["emails"] = {"Klaviyo Boutique F": {"EM02": {"titre": "A", "theme": "t", "statut": "NA", "recommandation": "",
                                                         "ecrans": {"BOUTIQUEC-EM-POPUP": ["C", "x"]}, "source": {"nom": "n", "url": "u"}}}}
     g.ETAT["emails"]["Klaviyo Boutique F"]["EM10"] = {"titre": "B", "theme": "t", "statut": "C", "recommandation": "",
@@ -461,3 +471,55 @@ def test_exporter_csv(gs, capsys):
     scores = list(csv.DictReader((d / "scores.csv").open(encoding="utf-8-sig"), delimiter=";"))
     assert {s["site"] for s in scores} == {"Boutique A", "Boutique C", "Boutique Y"} and next(s for s in scores if s["site"] == "Boutique C")["note"] == "-"
     assert "lignes ->" in capsys.readouterr().out
+
+
+# --- parc et compléments -----------------------------------------------------
+
+def test_construire_services(gs):
+    """Onglets tirés du parc et du CSV : sites (écrans, préfixe de langue, site sans écran), puis comptes e-mail."""
+    noms = [x["nom"] for x in g.SERVICES]
+    assert noms == ["Boutique A", "Boutique C", "Boutique F", "Klaviyo Boutique C", "Klaviyo Boutique F"]
+    a, c, f = g.SERVICES[:3]
+    assert a["id"] == "boutique-a" and a["ecrans"] == [("Accueil", "/"), ("Recherche", "/search?q=x")] and a["version"] == "Production · https://a.fr/"
+    assert c["version"] == "Production · https://c.fr/products/p" and f["ecrans"] == [] and f["version"] == "Production · "
+    assert g.SERVICES[3]["cat"] == "CRM" and g.SERVICES[3]["ecrans"][0] == ("Popup", "BOUTIQUEC-EM-POPUP")
+    ecrire_json(gs / "referentiel/parc.json", {"sites": [dict(PARC_ORIGINE["sites"][3], nom="Été à Noël", plateforme="")]})
+    s = g.construire_services()[0]
+    assert s["id"] == "ete-a-noel" and "plateforme shopify, version auditée sous /fr" in s["desc"]
+    assert g.ident("!!!") == "service"
+
+
+def test_ecrans_email(gs):
+    assert [c for c, _ in g.ecrans_email("Klaviyo Boutique F")][:2] == ["MAJ-EM-POPUP", "MAJ-EM-FOOTER"]
+    assert g.ecrans_email("Inconnu")[0] == ("POPUP", "Popup")
+    g.ETAT["emails"] = {"Klaviyo Boutique C": {"EM01": {"ecrans": {"BOUTIQUEC-EM-ZZZ": ["C", ""], "BOUTIQUEC-EM-FOOTER": ["C", ""]}},
+                                               "EM02": {"ecrans": {"BOUTIQUEC-EM-POPUP": ["C", ""]}}}}
+    assert g.ecrans_email("Klaviyo Boutique C") == [("BOUTIQUEC-EM-POPUP", "Popup"), ("BOUTIQUEC-EM-FOOTER", "Pied de page"), ("BOUTIQUEC-EM-ZZZ", "Zzz")]
+
+
+def test_main_avec_complements(gs, capsys):
+    """Compléments optionnels : tests et descriptions par service, Fait / À faire, liens, jalons, pied, scores basics."""
+    preparer(gs)
+    ecrire_json(gs / "referentiel/suivi-complements.json", {
+        "services": {"Boutique A": {"desc": "Confitures", "tests": [["05/11", "Type de site", "navigateur", "ok", "Shopify"]]}},
+        "fait": [["Cadrage", [["Parc arrêté", "8 services"]]]], "a_faire": [["Ensuite", [["Relire", "les écarts"]]]],
+        "liens": [["Dépôt", "https://exemple.org/depot", "privé"]], "jalons": [["ok", "J1 · cadrage"], ["", "J3 · baromètre"]],
+        "pied": "Liens privés.", "scores_basics": {"Boutique A": 53.1}})
+    g.main()
+    html = (gs / "suivi-barometre.html").read_text(encoding="utf-8")
+    assert "Parc arrêté" in html and "Relire" in html and "https://exemple.org/depot" in html and "Liens privés." in html
+    assert '<li class="ok">J1 · cadrage</li>' in html and "<li>J3 · baromètre</li>" in html and "score 53,1 %" in html
+    assert next(x for x in g.SERVICES if x["nom"] == "Boutique A")["tests"][0][0] == "05/11"
+    assert "Rien de consigné" not in html
+
+
+def test_main_sans_complements(gs):
+    """Sans compléments : listes vides signalées, pas de jalons, aucun nom de la mission d'origine."""
+    preparer(gs)
+    g.main()
+    html = (gs / "suivi-barometre.html").read_text(encoding="utf-8")
+    assert html.count("Rien de consigné") == 2 and "milestones" not in html.split("</style>")[-1]
+    for mot in ("itsmatlsr", "Secrets de", "J2 · 12 nov", "Klaviyo installé"):  # Colorz reste dans referentiel/audits-esm.json (hors de ce script)
+        assert mot not in html, mot
+    a = next(x for x in g.SERVICES if x["nom"] == "Boutique A")
+    assert a["tests"][0][:2] == ("2026-11-12", "Contrôles réseau")

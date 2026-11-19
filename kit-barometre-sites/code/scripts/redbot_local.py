@@ -32,10 +32,11 @@ import urllib.parse
 from datetime import datetime
 from pathlib import Path
 
+import parc
+
 RACINE = Path(__file__).resolve().parent.parent
 REDBOT = RACINE / ".venv" / "bin" / "redbot"
 VERSION = "0.1.0"
-HORS_SITE = ("Boutique C", "Boutique D", "Boutique E")  # /account redirigé vers shopify.com
 
 
 def lancer(url: str) -> dict:
@@ -79,11 +80,12 @@ def main() -> None:
     ecrans = [e for e in csv.DictReader((RACINE / "scripts" / "ecrans_en_ligne.csv").open(encoding="utf-8"))
               if not args.service or e["service"] == args.service]
     services: dict[str, dict] = {}
+    hors_site = parc.hors_site()  # sites dont le compte client (/account) est hébergé hors du site
     for i, e in enumerate(ecrans):
         fiche = {"gabarit": e["gabarit"], "url": e["url"], "controles": [], "notes": []}
         services.setdefault(e["service"], {"pages": []})["pages"].append(fiche)
-        if e["service"] in HORS_SITE and urllib.parse.urlsplit(e["url"]).path.endswith("/account"):
-            fiche["non_teste"] = "compte client hébergé par Shopify, hors du site"
+        if e["service"] in hors_site and urllib.parse.urlsplit(e["url"]).path.endswith("/account"):
+            fiche["non_teste"] = "compte client hébergé hors du site"
             continue
         if i:
             time.sleep(args.delai)

@@ -7,6 +7,7 @@ import sys
 import pytest
 
 import regles_releve as rr
+from aide_parc import poser_parc
 from conftest import ecrire_json, lire_json
 
 LEGAL = """Le site est édité par la société Exemple SAS au capital de 1000 €, RCS Paris 123 456 789.
@@ -153,7 +154,7 @@ def test_textes_en_anglais():
 
 
 def test_main(racine, tmp_path, monkeypatch, capsys):
-    r = racine(rr)
+    r = poser_parc(racine, rr)
     textes = tmp_path / "textes"
     textes.mkdir()
     (textes / "Boutique_A__cgv.txt").write_text(LEGAL, encoding="utf-8")
@@ -169,7 +170,7 @@ def test_main(racine, tmp_path, monkeypatch, capsys):
     assert set(out) == {"Boutique A", "Boutique C", "Boutique F", "Boutique G"}
     assert out["Boutique C"]["174"][0] == "C"
     assert out["Boutique C"]["57"][1].startswith("Non relevé sur ce site")
-    assert out["Boutique G"]["111"][1].startswith("Compte Klaviyo")
+    assert out["Boutique G"]["111"][1].startswith("Compte e-mail pas encore connecté")
     assert "111" not in out["Boutique F"] and "57" not in out["Boutique G"]
     assert rr.PAGES_RELEVE["Boutique A"] == [LEGAL]
     assert "Boutique A" in capsys.readouterr().out

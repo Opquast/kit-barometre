@@ -7,7 +7,7 @@ Sources :
   saisis dans les audits « <site>, scripts sans IA » ;
 - sites, robot Opquast basics d'eServices Manager : resultats/esm-basics-*/resultats.json (décomptes par page)
   et resultats/esm-basics-*/preuves_nc.json (commentaire du robot pour chaque non-conformité) ;
-- e-mails (Klaviyo Boutique C) : resultats/email-*/resultats.csv ;
+- e-mails (compte_email des sites, referentiel/parc.json) : resultats/email-*/resultats.csv, écrans <PREFIXE>-EM-… ;
 - identifiants des audits : referentiel/audits-esm.json ; recommandations : referentiel/recommandations.csv.
 
 Statut d'une règle pour un site : non conforme si au moins une page l'est, dans au moins une source ; sinon conforme
@@ -23,9 +23,9 @@ import json
 from datetime import date
 from pathlib import Path
 
+import parc
+
 RACINE = Path(__file__).resolve().parent.parent
-SITES = {"WEB-BOUTIQUEA": "Boutique A", "WEB-BOUTIQUEB": "Boutique B", "WEB-BOUTIQUEC": "Boutique C",
-         "WEB-BOUTIQUED": "Boutique D", "WEB-BOUTIQUEE": "Boutique E", "WEB-BOUTIQUEF": "Boutique F"}
 ORDRE = ["NC", "C", "NA", "NT"]
 LIB = {"NC": "non conforme", "C": "conforme", "NA": "non applicable", "NT": "non testé"}
 
@@ -52,12 +52,29 @@ def court(t: str, n: int = 260) -> str:
     return t if len(t) <= n else t[: n - 1].rsplit(" ", 1)[0] + "…"
 
 
+def lire_emails(lignes: list[dict], compte: str, prefixe: str, crit: dict, reco: dict, lien) -> dict:
+    """Critères e-mail d'un compte : statut par écran, statut combiné, recommandation et lien de l'audit."""
+    code = {"conforme": "C", "non conforme": "NC", "non applicable": "NA", "non testé": "NT", "indéterminé": "I"}
+    emails: dict = {}
+    for l in lignes:
+        e = emails.setdefault(l["critere"], {"titre": crit[l["critere"]]["critere"], "theme": crit[l["critere"]]["theme"], "ecrans": {}})
+        e["ecrans"][l["ecran_code"]] = [code.get(l["statut"], l["statut"]), court(f"[{l['methode']}] {l['justification']} {l.get('preuve', '')}", 280)]
+    for k, e in emails.items():
+        sts = [v[0] for v in e["ecrans"].values()]
+        e["statut"] = "NC" if "NC" in sts else "C" if "C" in sts else "I" if "I" in sts else "NA" if "NA" in sts else "NT"
+        nc = [c for c, v in e["ecrans"].items() if v[0] == "NC"]
+        e["recommandation"] = (f"Sur {compte} ({', '.join(x.replace(prefixe, '').lower() for x in nc)}) : " + reco.get(k, "")) if nc else (
+            f"Sur {compte}, à vérifier puis, si besoin : " + reco[k] if e["statut"] in ("I", "NT") and k in reco else "")
+        e["source"] = lien("email", compte)
+    return emails
+
+
 def main() -> None:
     reg = {r["number"]: r for r in json.loads((RACINE / "referentiel" / "opquast-checklist-v5.json").read_text(encoding="utf-8"))}
     meth = {int(x["numero"]): x["methode"] for x in csv.DictReader((RACINE / "referentiel" / "repartition-regles.csv").open(encoding="utf-8"))}
     reco = {x["code"]: x["recommandation"] for x in csv.DictReader((RACINE / "referentiel" / "recommandations.csv").open(encoding="utf-8"))}
     audits = json.loads((RACINE / "referentiel" / "audits-esm.json").read_text(encoding="utf-8"))
-    lien = lambda typ, site: {"nom": audits["noms"][typ].format(site=site), "url": audits["base"] + audits[typ][site]}
+    lien = lambda typ, site: {"nom": audits["noms"][typ].format(site=site), "url": audits["base"] + audits.get(typ, {}).get(site, "")}  # audit absent : lien vers la liste
     scripts_dir = dernier("resultats/esm-scripts-*")
     basics_dir = dernier("resultats/esm-basics-*")
     # Sans export eServices Manager (kit neuf ou ESM non utilisé) : sources absentes, colonnes vides, pas d'erreur.
@@ -68,7 +85,7 @@ def main() -> None:
     basics = lire_json(basics_dir / "resultats.json", {"regles": {}}) if basics_dir else {"regles": {}}
     preuves_robot = lire_json(basics_dir / "preuves_nc.json", {}) if basics_dir else {}
     sites = {}
-    for code, nom in SITES.items():
+    for nom, code in parc.codes_esm().items():
         pages = lire_json(scripts_dir / f"{code}.json", []) if scripts_dir else []
         regles: dict[int, dict] = {}
         for p in pages:
@@ -126,19 +143,15 @@ def main() -> None:
     f = dernier("resultats/email-*/resultats.csv")
     if f:
         crit = {x["id"]: x for x in csv.DictReader((RACINE / "referentiel" / "checklist-email.csv").open(encoding="utf-8"))}
-        code = {"conforme": "C", "non conforme": "NC", "non applicable": "NA", "non testé": "NT", "indéterminé": "I"}
-        compte = "Klaviyo Boutique C"
+        comptes = [s for s in parc.sites() if s.get("compte_email")]
+        prefixes = {s["compte_email"]: f"{s['prefixe_pages']}-EM-" for s in comptes}
+        # chaque écran va au compte dont il porte le préfixe (<PREFIXE>-EM-…) ; les autres, au premier compte du parc
+        par_compte: dict[str, list] = {}
         for l in csv.DictReader(f.open(encoding="utf-8")):
-            e = emails.setdefault(l["critere"], {"titre": crit[l["critere"]]["critere"], "theme": crit[l["critere"]]["theme"], "ecrans": {}})
-            e["ecrans"][l["ecran_code"]] = [code.get(l["statut"], l["statut"]), court(f"[{l['methode']}] {l['justification']} {l.get('preuve', '')}", 280)]
-        for k, e in emails.items():
-            sts = [v[0] for v in e["ecrans"].values()]
-            e["statut"] = "NC" if "NC" in sts else "C" if "C" in sts else "I" if "I" in sts else "NA" if "NA" in sts else "NT"
-            nc = [c for c, v in e["ecrans"].items() if v[0] == "NC"]
-            e["recommandation"] = (f"Sur {compte} ({', '.join(x.replace('BOUTIQUEC-EM-', '').lower() for x in nc)}) : " + reco.get(k, "")) if nc else (
-                f"Sur {compte}, à vérifier puis, si besoin : " + reco[k] if e["statut"] in ("I", "NT") and k in reco else "")
-            e["source"] = lien("email", compte)
-        emails = {compte: emails}
+            c = next((c for c, pre in prefixes.items() if l["ecran_code"].startswith(pre)), next(iter(prefixes), None))
+            if c:
+                par_compte.setdefault(c, []).append(l)
+        emails = {c: lire_emails(l, c, prefixes[c], crit, reco, lien) for c, l in par_compte.items()}
     sortie = RACINE / "resultats" / f"etat-{date.today():%Y-%m-%d}"
     sortie.mkdir(parents=True, exist_ok=True)
     (sortie / "etat.json").write_text(json.dumps({"date": f"{date.today():%Y-%m-%d}", "sites": sites, "emails": emails},

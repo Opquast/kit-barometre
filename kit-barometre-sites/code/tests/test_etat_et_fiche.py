@@ -9,6 +9,8 @@ import pytest
 
 import etat_barometre as eb
 import fiche_contre_examen as fce
+import parc
+from aide_parc import PARC_ORIGINE, poser_parc
 from conftest import ecrire_json, lire_json
 
 
@@ -29,8 +31,9 @@ def test_dernier(racine):
     assert eb.dernier("resultats/esm-scripts-*").name == "esm-scripts-2026-11-13"
 
 
-def preparer_etat(r, monkeypatch, emails=True):
-    monkeypatch.setattr(eb, "SITES", {"WEB-BOUTIQUEA": "Boutique A"})
+def preparer_etat(r, monkeypatch, emails=True, sites=("A", "C"), autres=()):
+    monkeypatch.setattr(parc, "RACINE", r)
+    ecrire_json(r / "referentiel/parc.json", {"responsable": "Mattea", "sites": [s for s in PARC_ORIGINE["sites"] if s["nom"][-1] in sites]})
     ecrire_json(r / "resultats/esm-scripts-2026-11-12/WEB-BOUTIQUEA.json", [
         {"titre": "Accueil", "resultats": {"1": ["NC", "défaut 1"], "3": ["C", "ok 3"], "4": ["NA", "na 4"],
                                            "8": ["NC", "défaut 8"], "10": ["C", "ok 10"]}},
@@ -58,7 +61,7 @@ def preparer_etat(r, monkeypatch, emails=True):
         lignes = [("E1", "BOUTIQUEC-EM-BIENVENUE", "non conforme"), ("E1", "BOUTIQUEC-EM-PANIER", "conforme"),
                   ("E2", "BOUTIQUEC-EM-BIENVENUE", "conforme"), ("E3", "BOUTIQUEC-EM-BIENVENUE", "indéterminé"),
                   ("E4", "BOUTIQUEC-EM-BIENVENUE", "non applicable"), ("E5", "BOUTIQUEC-EM-BIENVENUE", "non testé"),
-                  ("E6", "BOUTIQUEC-EM-BIENVENUE", "autre")]
+                  ("E6", "BOUTIQUEC-EM-BIENVENUE", "autre")] + list(autres)
         with (r / "resultats/email-2026-11-12/resultats.csv").open("w", encoding="utf-8", newline="") as f:
             w = csv.writer(f)
             w.writerow(["critere", "ecran_code", "statut", "methode", "justification", "preuve"])
@@ -101,6 +104,26 @@ def test_etat_barometre_sans_emails(racine, monkeypatch):
     preparer_etat(r, monkeypatch, emails=False)
     eb.main()
     assert lire_json(r / "resultats" / f"etat-{date.today():%Y-%m-%d}" / "etat.json")["emails"] == {}
+
+
+def test_etat_barometre_emails_par_compte(racine, monkeypatch):
+    """Écrans répartis par préfixe ; un écran sans préfixe connu va au premier compte du parc."""
+    r = racine(eb)
+    preparer_etat(r, monkeypatch, sites=("A", "C", "F"), autres=[("E2", "MAJ-EM-BIENVENUE", "non conforme"), ("E2", "AUTRE-EM-X", "conforme")])
+    eb.main()
+    emails = lire_json(r / "resultats" / f"etat-{date.today():%Y-%m-%d}" / "etat.json")["emails"]
+    assert set(emails) == {"Klaviyo Boutique C", "Klaviyo Boutique F"}
+    assert emails["Klaviyo Boutique F"]["E2"]["recommandation"].startswith("Sur Klaviyo Boutique F (bienvenue)")
+    assert set(emails["Klaviyo Boutique C"]["E2"]["ecrans"]) == {"BOUTIQUEC-EM-BIENVENUE", "AUTRE-EM-X"}
+
+
+def test_etat_barometre_emails_sans_compte(racine, monkeypatch):
+    """Parc sans compte e-mail : le fichier des e-mails est ignoré."""
+    r = racine(eb)
+    preparer_etat(r, monkeypatch, sites=("A",))
+    eb.main()
+    etat = lire_json(r / "resultats" / f"etat-{date.today():%Y-%m-%d}" / "etat.json")
+    assert etat["emails"] == {} and list(etat["sites"]) == ["Boutique A"]
 
 
 # --- fiche_contre_examen : proposition --------------------------------------
@@ -182,7 +205,8 @@ def test_proposition(n, robot, c, constat, prop):
     (1, "C", "Confirmer non applicable", None, "NA", "Confirmer non applicable"),
     (1, "NT", "Tester à la main", None, "NT", "Aucun constat contraire"),
 ])
-def test_trancher(n, robot, prop, p, statut, motif):
+def test_trancher(racine, n, robot, prop, p, statut, motif):
+    poser_parc(racine)
     obtenu_statut, obtenu_motif = fce.trancher(n, robot, prop, p)
     assert obtenu_statut == statut
     assert motif in obtenu_motif
@@ -192,7 +216,7 @@ def test_trancher(n, robot, prop, p, statut, motif):
 
 @pytest.mark.parametrize("avec_parcours", [True, False])
 def test_fiche_main(racine, capsys, avec_parcours):
-    r = racine(fce)
+    r = poser_parc(racine, fce)
     ecrire_json(r / "resultats/etat-2026-11-12/etat.json", {"sites": {"Boutique A": {
         "216": {"robot": "NC", "titre": "Fenêtre"}, "18": {"robot": "NT", "titre": "Compte"},
         "140": {"robot": "C", "titre": "Liens"}}}})
@@ -211,6 +235,7 @@ def test_fiche_main(racine, capsys, avec_parcours):
     par_regle = {l["regle"]: l for l in fiche}
     assert set(par_regle) == {216, 18, 140}
     assert par_regle[216]["robot_constat"] == "robot dit non" and par_regle[216]["decision_statut"] == "C"
+    assert par_regle[216]["decision"] == "tranchée par Claude, à valider par Mattea"
     assert par_regle[18]["decision"] == "parcours de Mattea" and par_regle[18]["robot_constat"] == ""
     assert par_regle[140]["decision_statut"] == "NC" and par_regle[140]["recommandation"] == "Sur Boutique A : Souligner les liens"
     lignes = list(csv.reader((dossier / "fiche.csv").open(encoding="utf-8")))

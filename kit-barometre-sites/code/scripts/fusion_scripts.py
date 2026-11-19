@@ -26,9 +26,9 @@ import sys
 from datetime import date
 from pathlib import Path
 
+import parc
+
 RACINE = Path(__file__).resolve().parent.parent
-SERVICES = {"Boutique A": "WEB-BOUTIQUEA", "Boutique B": "WEB-BOUTIQUEB", "Boutique C": "WEB-BOUTIQUEC",
-            "Boutique D": "WEB-BOUTIQUED", "Boutique E": "WEB-BOUTIQUEE", "Boutique F": "WEB-BOUTIQUEF"}
 SOURCES = [("reseau", "controles_reseau.py"), ("page", "controles_page.js"), ("i18n", "W3C i18n Checker"), ("redbot", "REDbot"), ("aria", "axe-core, IBM et relevé")]
 SAUF = set(sys.argv[1:])  # sources à ignorer (ex. redbot tant que son passage n'est pas fini)
 CODE = {"conforme": "C", "non conforme": "NC", "non applicable": "NA"}
@@ -55,7 +55,7 @@ def main() -> None:
     sortie = RACINE / "resultats" / f"esm-scripts-{date.today():%Y-%m-%d}"
     sortie.mkdir(parents=True, exist_ok=True)
     bilan = []
-    for nom, code in SERVICES.items():
+    for nom, code in parc.codes_esm().items():
         pages = []
         for e in [x for x in ecrans if x["service"] == nom]:
             accueil = e["gabarit"].startswith("Accueil")

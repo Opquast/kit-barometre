@@ -12,6 +12,7 @@ import pytest
 
 import i18n_w3c as i18n
 import redbot_local as rb
+from aide_parc import poser_parc
 from conftest import lire_json
 
 ECRANS = ("service,gabarit,url\n"
@@ -77,7 +78,7 @@ class FausseReponse(io.BytesIO):
 
 
 def test_i18n_main(racine, monkeypatch, capsys):
-    r = racine(i18n)
+    r = poser_parc(racine, i18n)
     ecrans(r)
     monkeypatch.setattr(i18n.time, "sleep", lambda s: None)
     monkeypatch.setattr(sys, "argv", ["i18n", "--delai", "0"])
@@ -113,7 +114,7 @@ def test_i18n_main(racine, monkeypatch, capsys):
 
 
 def test_i18n_un_service(racine, monkeypatch):
-    r = racine(i18n)
+    r = poser_parc(racine, i18n)
     ecrans(r)
     monkeypatch.setattr(sys, "argv", ["i18n", "--service", "Boutique C"])
     i18n.main()
@@ -167,7 +168,7 @@ def har(statut, notes=(), **h):
 
 
 def test_redbot_main(racine, monkeypatch, capsys):
-    r = racine(rb)
+    r = poser_parc(racine, rb)
     ecrans(r)
     monkeypatch.setattr(rb.time, "sleep", lambda s: None)
     monkeypatch.setattr(sys, "argv", ["rb", "--delai", "0"])
@@ -205,7 +206,7 @@ def test_redbot_main(racine, monkeypatch, capsys):
 
 @pytest.mark.parametrize("service", ["Boutique B"])
 def test_redbot_un_service(racine, monkeypatch, service):
-    r = racine(rb)
+    r = poser_parc(racine, rb)
     ecrans(r)
     monkeypatch.setattr(sys, "argv", ["rb", "--service", service])
     monkeypatch.setattr(rb, "lancer", lambda url: har(200))

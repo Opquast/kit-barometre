@@ -4,12 +4,12 @@
 Deux sortes de décisions, toujours avec leur preuve :
 - mesure : un fait relevé dans la page (popup présente, menu sur la 404, soulignement hors lien…) ;
 - lecture : la présence d'une information dans les pages légales et d'aide (garantie, médiation, RCS, droit d'accès…),
-  cherchée par expressions ; c'est un jugement de Claude, à valider par Mattea.
+  cherchée par expressions ; c'est un jugement de Claude, à valider par la personne responsable (referentiel/parc.json).
 Sans preuve suffisante, la règle reste non tranchée (NT) plutôt que d'être devinée. Les règles qui demandent un compte,
 une commande, un envoi ou un e-mail reçu restent écartées.
 
 Entrées : resultats/releve-*/releve.json, les textes des pages (dossier passé en argument), resultats/parcours-*/parcours.json,
-          resultats/etat-*/etat.json (e-mails Klaviyo pour Boutique C).
+          resultats/etat-*/etat.json (e-mails du compte_email de chaque site, referentiel/parc.json).
 Sortie : resultats/releve-AAAA-MM-JJ/decisions.json  { site: { règle: [statut, preuve, nature] } }
 Usage : python3 scripts/regles_releve.py <dossier des textes>
 """
@@ -19,6 +19,8 @@ import json
 import re
 import sys
 from pathlib import Path
+
+import parc
 
 RACINE = Path(__file__).resolve().parent.parent
 
@@ -248,18 +250,18 @@ def decider(nom, s, textes, parcours, emails):
     else:
         mes(133, "NA", "Site en une seule langue"); mes(134, "NA", "Site en une seule langue")
     D["131"] = ["NA", "Aucun lien vers une page dans une autre langue au fil du texte", "lecture"]
-    # Newsletter (site) et e-mails (Klaviyo, Boutique C seulement)
+    # Newsletter (site) et e-mails (sites qui ont un compte e-mail relevé)
     D["179"] = ["C", "Fréquence d'envoi annoncée à l'inscription", "mesure"] if po.get("frequence_annoncee") or chercher(pied, r"(par (semaine|mois)|\d+ (e-?mails?|fois)|hebdo|mensuel)") else ["NC", "Fréquence d'envoi non annoncée dans le formulaire d'inscription (popup ou pied de page)", "mesure"]
     D["177"] = list(lecture(tout + pied, r"(derni[èe]re newsletter|archives? (des|de nos) newsletters?)", "Dernière newsletter en ligne"))
     D["178"] = list(lecture(tout + pied, r"(archives? (des|de nos) newsletters?)", "Archives des newsletters"))
     if emails:
         st = lambda k: emails.get(k, {}).get("statut")
         if st("EM18") in ("C", "NC"):
-            D["174"] = [st("EM18"), "E-mails Klaviyo relevés : lien de désinscription (critère EM18)", "mesure"]
+            D["174"] = [st("EM18"), "E-mails relevés : lien de désinscription (critère EM18)", "mesure"]
         if st("EM19") in ("C", "NC"):
-            D["175"] = [st("EM19"), "E-mails Klaviyo relevés : désinscription sans confirmation par e-mail (critère EM19)", "mesure"]
+            D["175"] = [st("EM19"), "E-mails relevés : désinscription sans confirmation par e-mail (critère EM19)", "mesure"]
         if st("EM20") in ("C", "NC"):
-            D["111"] = [st("EM20"), "E-mails Klaviyo relevés : coordonnées de l'annonceur (critère EM20)", "mesure"]
+            D["111"] = [st("EM20"), "E-mails relevés : coordonnées de l'annonceur (critère EM20)", "mesure"]
     # pages protégées par une vérification anti-robot (non contournée) : ce qui en dépend n'est pas tranché
     VERIF = r"connexion doit être vérifiée|verify you are human|vérifi(ez|cation) que vous êtes|checking your browser|just a moment"
     pages_lues = PAGES_RELEVE.get(nom, textes)  # le relevé navigateur, hors politiques Shopify ajoutées le 12/11
@@ -291,6 +293,7 @@ def main():
     releve = dernier("resultats/releve-*/releve.json")
     parcours = dernier("resultats/parcours-*/parcours.json")
     emails = dernier("resultats/etat-*/etat.json").get("emails", {})
+    comptes = parc.comptes_email()
     out = {}
     for nom, s in releve.items():
         if not s.get("fini"):
@@ -299,17 +302,18 @@ def main():
         fichiers = sorted(textes_dir.glob(f"{prefixe}__*.txt"))
         tx = [p.read_text(encoding="utf-8") for p in fichiers]
         PAGES_RELEVE[nom] = [p.read_text(encoding="utf-8") for p in fichiers if "__politique_" not in p.name]
-        em = emails.get("Klaviyo Boutique C") if nom == "Boutique C" else None
+        compte = comptes.get(nom)  # compte e-mail du site (referentiel/parc.json), relevé dans l'état consolidé
+        em = emails.get(compte) if compte else None
         out[nom] = decider(nom, s, tx, parcours, em)
     # Cohérence (12/11) : toute règle tranchée par le relevé sur un site existe sur tous les sites, en « non testé »
-    # avec sa raison si le relevé n'a rien pu mesurer. 111 et 174 (e-mails reçus) ne valent que pour les comptes
-    # Klaviyo du parc : écartées ailleurs (referentiel/exclusions-sites.json), en attente de connexion pour Boutique F.
+    # avec sa raison si le relevé n'a rien pu mesurer. 111 et 174 (e-mails reçus) ne valent que pour les
+    # comptes e-mail du parc : écartées ailleurs (referentiel/exclusions-sites.json), en attente de connexion sinon.
     excl = json.loads((RACINE / "referentiel" / "exclusions-sites.json").read_text(encoding="utf-8"))
     toutes = set().union(*(r.keys() for r in out.values()))
     for nom, r in out.items():
         exclues = {str(x) for x in (excl.get(nom, {}).get("regles", []) if isinstance(excl.get(nom), dict) else excl.get(nom, []))}
         for k in toutes - set(r) - exclues:
-            r[k] = ["NT", "Compte Klaviyo pas encore connecté : e-mails non lus" if k in ("111", "174")
+            r[k] = ["NT", "Compte e-mail pas encore connecté : e-mails non lus" if k in ("111", "174")
                     else "Non relevé sur ce site (page ou donnée inaccessible pendant le relevé)", "mesure"]
     d = sorted(RACINE.glob("resultats/releve-*"))[-1]
     out = {n: {k: [v[0], masquer(v[1]), v[2]] for k, v in r.items()} for n, r in out.items()}

@@ -9,6 +9,7 @@ from datetime import date
 import controles_aria
 import import_esm
 import verifier_citations as vc
+from aide_parc import poser_parc
 from conftest import ecrire_json, lire_json
 
 
@@ -81,7 +82,7 @@ def test_code_et_titre_page():
 
 
 def test_import_esm_main(racine, tmp_path, monkeypatch, capsys):
-    r = racine(import_esm)
+    r = poser_parc(racine, import_esm)
     (r / "scripts" / "ecrans_en_ligne.csv").write_text(
         "service,gabarit,url\nBoutique A,Fiche produit,https://a.fr/p\n", encoding="utf-8")
     dossier = tmp_path / "reseau"
@@ -95,7 +96,8 @@ def test_import_esm_main(racine, tmp_path, monkeypatch, capsys):
                 {"gabarit": "Produit", "url": "https://a.fr/p", "controles": [
                     {"rule_number": 3, "status": "non-conforme", "comment": "ko"}]},
                 {"gabarit": "Panier", "url": "https://a.fr/c"},
-            ]}}})
+            ]},
+            "Boutique Z": {"site": [], "pages": [{"gabarit": "Accueil", "url": "https://z.fr/"}]}}})
     monkeypatch.setattr(sys, "argv", ["import_esm", str(dossier)])
     import_esm.main()
     lignes = list(csv.reader((dossier / "import-esm-WEB-BOUTIQUEA.csv").open(encoding="utf-8")))
@@ -103,8 +105,10 @@ def test_import_esm_main(racine, tmp_path, monkeypatch, capsys):
     assert lignes[1][:3] == ["WEB-BOUTIQUEA", "opquast-1", "C"]
     assert "mailto:[masqué]" in lignes[1][3]
     assert lignes[2][2:5] == ["NC", "[controles_reseau.py v1.2] ko", "BM-FICHE-PRODUIT"]
-    assert len(lignes) == 3
-    assert "2 lignes" in capsys.readouterr().out
+    assert len(lignes) == 3 and lignes[1][7] == "MLU"
+    out = capsys.readouterr().out
+    assert "2 lignes" in out and "Boutique Z : absent de referentiel/parc.json" in out
+    assert not (dossier / "import-esm-WEB-BOUTIQUEZ.csv").exists()
 
 
 def test_import_esm_dossier_par_defaut(racine, monkeypatch):
@@ -115,7 +119,7 @@ def test_import_esm_dossier_par_defaut(racine, monkeypatch):
         "meta": {"date": "2026", "version": "1"}, "services": {}})
     monkeypatch.setattr(import_esm.Path, "read_text", lambda self, encoding=None: "{}")
     import_esm.main()
-    assert lu == ["{}"]
+    assert lu and set(lu) == {"{}"}  # parc.json et resultats.json du dossier par défaut
 
 
 # --- controles_aria ---------------------------------------------------------

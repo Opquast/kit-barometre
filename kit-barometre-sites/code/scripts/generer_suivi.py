@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Ajoute à suivi-barometre.html un onglet par service du parc, avec tous ses tests.
 
-Sources : resultats/reseau-*/resultats.json (contrôles réseau) et les tests d'accès
-consignés ci-dessous (SERVICES). Relancer après chaque nouveau test, puis republier
-la page à la même adresse.
+Les onglets viennent du parc (referentiel/parc.json : un onglet par site, un par compte e-mail) et des écrans
+(scripts/ecrans_en_ligne.csv). Sources : resultats/ (contrôles réseau, état consolidé, lectures…). Le contenu propre
+à une mission (historique des tests d'accès, listes Fait et À faire, liens, scores basics relevés, jalons) est
+optionnel : referentiel/suivi-complements.json (voir charger_complements). Relancer après chaque nouveau test, puis
+republier la page à la même adresse.
 
 Usage : python3 scripts/generer_suivi.py
 """
@@ -14,6 +16,8 @@ import json
 from datetime import date
 import re
 from pathlib import Path
+
+import parc
 
 RACINE = Path(__file__).resolve().parent.parent
 PAGE = RACINE / "suivi-barometre.html"
@@ -37,135 +41,83 @@ PASTILLE = {
     "attention": ("p-todo", "à surveiller"), "afaire": ("p-todo", "à faire"), "info": ("p-na", "info"),
 }
 
-# Tests d'accès et de faisabilité, par service. (date, test, outil, statut, résultat)
-SERVICES = [
-    {
-        "id": "boutique-a", "nom": "Boutique A", "cat": "E-commerce", "reseau": "Boutique A",
-        "desc": "Site e-commerce client, boutique Shopify en production (confitures, biscuits, desserts).",
-        "version": "Production · https://www.boutique-a.example", "regles": "Opquast, 245 règles + axe-core (WCAG 2.1 A et AA)",
-        "ecrans": [("Accueil", "/"), ("Formulaire newsletter", "pied de page de l'accueil"), ("Collection", "/collections/all"),
-                   ("Produit", "/products/calendrier-avent-confiture"), ("Panier", "/cart (vide)"), ("Recherche", "/search?q=confiture"),
-                   ("Recette", "/blogs/recipe/tarte-a-la-citrouille-speculoos-et-caramel-au-beurre-sale-boutique-a"),
-                   ("Page de contenu", "/pages/informations-exceptionnelles-sur-les-livraisons")],
-        "tests": [
-            ("05/11", "Type de site", "navigateur", "ok", "Boutique Shopify, Klaviyo installé, inscription newsletter présente"),
-            ("05/11", "Repérage des gabarits", "navigateur", "ok", "Collections, produits, recettes (blog), pages, compte, recherche"),
-            ("05/11", "Accès aux adresses de l'échantillon", "curl + navigateur", "ok", "Toutes existent ; Shopify renvoie 429 si les requêtes sont trop rapprochées"),
-            ("05/11", "Compte client", "curl", "info", "Redirige vers les comptes clients hébergés par Shopify (shopify.com) : hors périmètre"),
-            ("05/11", "Contrôles réseau, 19 règles", "controles_reseau.py v0.1.2", "attention", "17 conformes, 2 non conformes (212, 214)"),
-            ("05/11", "Certificat TLS", "controles_reseau.py v0.1.2", "attention", "Valide, Let's Encrypt, expire le 11/12/2026"),
-            ("12/11", "Rapport Opquast de la couche automatique", "MCP Opquast, generate_audit_report", "ok", "Rapport HTML généré, 89,5 % sur 19 règles ; copie dans le dépôt"),
-        ],
-        "afaire": ["Contrôler la page collection dans le navigateur (bloquée pour le robot)",
-                   "Corriger en priorité les non-conformités de l'onglet (voir recommandations)",
-                   "Servir d'écran témoin (accueil) pour mesurer le coût réel d'un audit"],
-    },
-    {
-        "id": "boutique-b", "nom": "Boutique B", "cat": "E-commerce", "reseau": "Boutique B",
-        "desc": "Site e-commerce client, boutique Shopify en production (mode homme et femme).",
-        "version": "Production · https://www.boutique-b.example", "regles": "Opquast, 245 règles + axe-core (WCAG 2.1 A et AA)",
-        "ecrans": [("Accueil (avec formulaire newsletter)", "/"), ("Collection", "/collections/polo"),
-                   ("Produit", "/products/chemise-femme-chemisier-ml-rose-6chmgoline700a"), ("Panier", "/cart (vide)"),
-                   ("Recherche", "/search?q=polo"), ("Compte (connexion)", "/account/login"),
-                   ("Page histoire", "/pages/notre-histoire"), ("Formulaire affiliation", "/pages/devenez-affilie")],
-        "tests": [
-            ("05/11", "Type de site", "navigateur", "ok", "Boutique Shopify, Klaviyo installé, inscription newsletter présente"),
-            ("05/11", "Accès aux 8 adresses de l'échantillon", "curl + navigateur", "ok", "Toutes existent dans le navigateur"),
-            ("05/11", "Protection anti-robot", "curl", "attention", "Shopify renvoie 429 au robot sur collection, produit et recherche, même avec 15 s d'écart"),
-            ("05/11", "Contrôles réseau, 19 règles", "controles_reseau.py v0.1.2", "attention", "17 conformes, 2 non conformes (212, 214)"),
-            ("05/11", "Certificat TLS", "controles_reseau.py v0.1.2", "ok", "Valide, expire dans 82 jours"),
-        ],
-        "afaire": ["Contrôler dans le navigateur les 3 pages bloquées pour le robot",
-                   "Corriger en priorité les non-conformités de l'onglet (voir recommandations)"],
-    },
-    {
-        "id": "boutique-c", "nom": "Boutique C", "cat": "E-commerce", "reseau": "Boutique C",
-        "desc": "Site e-commerce client, boutique Shopify en production (soins pour cheveux ondulés, bouclés, frisés, crépus).",
-        "version": "Production · https://www.boutique-c.example", "regles": "Opquast, 245 règles + axe-core (WCAG 2.1 A et AA)",
-        "ecrans": [("Accueil (avec formulaire newsletter)", "/"), ("Collection", "/collections/idees-cadeaux"),
-                   ("Produit", "/products/sunshine-clean-shampooing"), ("Panier", "/cart (vide)"), ("Recherche", "/search?q=shampooing"),
-                   ("Compte", "/account"), ("Diagnostic capillaire", "/pages/diagnostic-capillaire"), ("Avis clients", "/pages/avis-clients")],
-        "tests": [
-            ("12/11", "Type de site", "navigateur", "ok", "Boutique Shopify, Klaviyo installé, inscription newsletter présente"),
-            ("12/11", "Repérage des gabarits", "navigateur", "ok", "Collections, produits, pages (diagnostic, avis, récompenses), recherche"),
-            ("12/11", "Contrôles réseau, 19 règles", "controles_reseau.py v0.1.2", "RESEAU", "RESEAU"),
-        ],
-        "afaire": ["Corriger en priorité les non-conformités de l'onglet (voir recommandations)", "Recouper avec le compte Klaviyo du même client"],
-    },
-    {
-        "id": "boutique-d", "nom": "Boutique D", "cat": "E-commerce", "reseau": "Boutique D",
-        "desc": "Site e-commerce client, boutique Shopify en production (mode homme). Site d'abord en anglais : audit de la version française.",
-        "version": "Production · https://boutique-d.example/fr", "regles": "Opquast, 245 règles + axe-core (WCAG 2.1 A et AA)",
-        "ecrans": [("Accueil (avec formulaire newsletter)", "/fr"), ("Collection", "/fr/collections/all-nfpm"),
-                   ("Produit", "/fr/products/slogan-zipped-sherpa-jacket"), ("Panier", "/fr/cart (vide)"), ("Recherche", "/fr/search?q=chemise"),
-                   ("Compte", "/fr/account"), ("Page marque", "/fr/pages/about"), ("Formulaire de contact", "/fr/pages/contact")],
-        "tests": [
-            ("12/11", "Type de site", "navigateur", "ok", "Boutique Shopify, Klaviyo installé, inscription newsletter présente"),
-            ("12/11", "Langues", "navigateur (hreflang)", "info", "Anglais par défaut, version française sous /fr"),
-            ("12/11", "Contrôles réseau, 19 règles", "controles_reseau.py v0.1.2", "RESEAU", "RESEAU"),
-        ],
-        "afaire": ["Corriger en priorité les non-conformités de l'onglet (voir recommandations)", "Vérifier les règles Internationalisation (langue par défaut en anglais)"],
-    },
-    {
-        "id": "boutique-e", "nom": "Boutique E", "cat": "E-commerce", "reseau": "Boutique E",
-        "desc": "Site e-commerce client, boutique Shopify en production (arts de la table).",
-        "version": "Production · https://www.boutique-e.example", "regles": "Opquast, 245 règles + axe-core (WCAG 2.1 A et AA)",
-        "ecrans": [("Accueil (avec formulaire newsletter)", "/"), ("Collection", "/collections/all"),
-                   ("Produit", "/products/flute-30-cl-exaltation"), ("Panier", "/cart (vide)"), ("Recherche", "/search?q=verre"),
-                   ("Compte", "/account"), ("Article de blog", "/blogs/news/table-de-noel"), ("FAQ", "/pages/faq")],
-        "tests": [
-            ("12/11", "Type de site", "navigateur", "ok", "Boutique Shopify, Klaviyo installé, inscription newsletter présente"),
-            ("12/11", "Repérage des gabarits", "navigateur", "ok", "Collections, produits, blog, pages marques, FAQ"),
-            ("12/11", "Contrôles réseau, 19 règles", "controles_reseau.py v0.1.2", "RESEAU", "RESEAU"),
-        ],
-        "afaire": ["Corriger en priorité les non-conformités de l'onglet (voir recommandations)"],
-    },
-    {
-        "id": "boutique-f", "nom": "Boutique F", "cat": "E-commerce", "reseau": "Boutique F",
-        "desc": "Site e-commerce client, boutique Shopify en production (tee-shirts de luxe), en 4 langues.",
-        "version": "Production · https://www.boutique-f.example", "regles": "Opquast, 245 règles + axe-core (WCAG 2.1 A et AA)",
-        "ecrans": [("Accueil (avec formulaire newsletter)", "/"), ("Collection", "/collections/collection-automne-hiver-2026"),
-                   ("Produit", "/products/pull-tatanka-col-rond-manches-longues-en-raccon-wool-polyamide-k149-fpu835-1154"),
-                   ("Panier", "/cart (vide)"), ("Recherche", "/search?q=tee-shirt"), ("Compte", "/account"),
-                   ("Page histoire", "/pages/notre-histoire"), ("Store locator", "/pages/store-locator")],
-        "tests": [
-            ("12/11", "Type de site", "navigateur", "ok", "Boutique Shopify, Klaviyo installé, inscription newsletter présente"),
-            ("12/11", "Langues", "navigateur (hreflang)", "info", "Français par défaut, anglais, allemand, espagnol"),
-            ("12/11", "Contrôles réseau, 19 règles", "controles_reseau.py v0.1.2", "RESEAU", "RESEAU"),
-        ],
-        "afaire": ["Corriger en priorité les non-conformités de l'onglet (voir recommandations)", "Recouper avec le compte Klaviyo du même client (à connecter)"],
-    },
-    {
-        "id": "klaviyo-boutique-c", "nom": "Klaviyo Boutique C", "cat": "CRM", "reseau": None,
-        "desc": "Compte Klaviyo des Secrets de Boutique C : e-mails et formulaires d'inscription.",
-        "version": "Production · connecteur Klaviyo, lecture seule", "regles": "Checklist e-mail Colorz : 41 critères, dont 26 reliés à Opquast",
-        "ecrans": [("Popup d'inscription", "formulaire Te6cZt, Welcome + SMS FR desktop"), ("Formulaire de pied de page", "formulaire Ucejif, FOOTER FR"),
-                   ("E-mail de bienvenue", "modèle URuKfv"), ("E-mail de panier abandonné", "modèle Sytdtg"),
-                   ("E-mail post-achat", "modèle UMZbLV"), ("Campagne", "2026-11-04-COFFRET ENFANTS")],
-        "tests": [
-            ("05/11", "Compte connecté", "connecteur Klaviyo", "ok", "Organisation « Boutique C », site boutique-c.example"),
-            ("05/11", "Flows actifs", "connecteur Klaviyo", "ok", "Bienvenue, panier abandonné, post-achat retrouvés avec leurs e-mails"),
-            ("05/11", "Formulaires actifs", "connecteur Klaviyo", "ok", "8 formulaires en ligne, dont popup et footer FR"),
-            ("05/11", "Lecture d'un modèle d'e-mail", "connecteur Klaviyo", "ok", "Modèle Sytdtg lisible (éditeur glisser-déposer)"),
-            ("05/11", "Campagnes récentes", "connecteur Klaviyo", "ok", "Campagne envoyée le 04/11 retenue"),
-            ("12/11", "Compte toujours accessible", "connecteur Klaviyo", "ok", "Compte des Secrets de Boutique C"),
-        ],
-        "afaire": ["Relire les jugements IA (consentement, contraste) et finaliser l'audit", "Tester à la main désinscription, clavier et rendu en mode sombre"],
-    },
-    {
-        "id": "klaviyo-boutique-f", "nom": "Klaviyo Boutique F", "cat": "CRM", "reseau": None,
-        "desc": "Compte Klaviyo de Boutique F : e-mails et formulaires d'inscription.",
-        "version": "Production · accès à ouvrir", "regles": "Checklist e-mail Colorz : 41 critères, dont 26 reliés à Opquast",
-        "ecrans": [("Popup d'inscription", "à identifier"), ("Formulaire de pied de page", "à identifier"), ("E-mail de bienvenue", "à identifier"),
-                   ("E-mail de panier abandonné", "à identifier"), ("E-mail post-achat", "à identifier"), ("Campagne", "à identifier")],
-        "tests": [
-            ("12/11", "Accès au compte", "connecteur Klaviyo", "ko", "Le connecteur ne donne accès qu'au compte des Secrets de Boutique C"),
-            ("12/11", "Klaviyo installé sur le site", "navigateur", "ok", "Script Klaviyo et formulaire newsletter présents sur boutique-f.example"),
-        ],
-        "afaire": ["Connecter le compte Klaviyo de Boutique F", "Choisir les 6 écrans", "Audit IA et validation humaine, en lecture seule"],
-    },
-]
+# Onglets de service, construits par construire_services() depuis le parc (rempli par main()).
+SERVICES: list[dict] = []
+COMPLEMENTS: dict = {}
+SUFFIXES_EMAIL = [("POPUP", "Popup"), ("FOOTER", "Pied de page"), ("BIENVENUE", "Bienvenue"), ("PANIER", "Panier"),
+                  ("POSTACHAT", "Post-achat"), ("CAMPAGNE", "Campagne")]
 
+
+def qui() -> str:
+    """Personne responsable du baromètre (referentiel/parc.json)."""
+    return parc.responsable()
+
+
+def source_ce() -> str:
+    """Nom de la source « contre-examen » dans la lecture critique (même construction que scripts/lecture_critique.py)."""
+    return f"Contre-examen (validé par {qui()})"
+
+
+def ident(nom: str) -> str:
+    """Identifiant d'onglet : minuscules, sans accents ni espaces."""
+    import unicodedata
+    t = unicodedata.normalize("NFKD", nom).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", "-", t).strip("-") or "service"
+
+
+def charger_complements(chemin: Path | None = None) -> dict:
+    """Compléments optionnels propres à une mission (referentiel/suivi-complements.json), vides sans le fichier.
+
+    Clés : services ({nom: {desc, version, regles, ecrans, tests, afaire}}, remplace les valeurs génériques),
+    fait et a_faire ([[groupe, [[titre, détail], …]], …]), liens ([[titre, url, détail], …]),
+    scores_basics ({nom: score des audits Opquast basics d'eServices Manager}), jalons ([[classe, libellé], …]), pied (texte).
+    """
+    f = chemin or RACINE / "referentiel" / "suivi-complements.json"
+    return json.loads(f.read_text(encoding="utf-8")) if f.is_file() else {}
+
+
+def construire_services() -> list[dict]:
+    """Un onglet par site du parc (écrans tirés du CSV), puis un par compte e-mail ; compléments optionnels par-dessus."""
+    import csv
+    from urllib.parse import urlsplit
+    ecrans = list(csv.DictReader((RACINE / "scripts" / "ecrans_en_ligne.csv").open(encoding="utf-8")))
+    sup = COMPLEMENTS.get("services", {})
+    out = []
+    for site in parc.sites():
+        nom = site["nom"]
+        ec = [x for x in ecrans if x["service"] == nom]
+        accueil = next((x["url"] for x in ec if x["gabarit"].startswith("Accueil")), ec[0]["url"] if ec else "")
+        plateforme = site.get("plateforme") or "shopify"
+        u = [(x["gabarit"], (urlsplit(x["url"]).path or "/") + (f"?{urlsplit(x['url']).query}" if urlsplit(x["url"]).query else "")) for x in ec]
+        s_ = {"id": ident(nom), "nom": nom, "cat": "E-commerce", "reseau": nom,
+              "desc": f"Site du parc, plateforme {plateforme}" + (f", version auditée sous {site['prefixe_langue']}" if site.get("prefixe_langue") else "") + ".",
+              "version": f"Production · {accueil}", "regles": "Opquast, 245 règles + axe-core (WCAG 2.1 A et AA)", "ecrans": u,
+              "tests": [("", "Contrôles réseau", "controles_reseau.py", "RESEAU", "RESEAU")],
+              "afaire": ["Corriger en priorité les non-conformités de l'onglet (voir recommandations)"]}
+        out.append({**s_, **sup.get(nom, {})})
+    for site in parc.sites():
+        compte = site.get("compte_email")
+        if not compte:
+            continue
+        s_ = {"id": ident(compte), "nom": compte, "cat": "CRM", "reseau": None,
+              "desc": f"Compte e-mail associé à {site['nom']} : e-mails et formulaires d'inscription.",
+              "version": "Production · lecture seule", "regles": "Checklist e-mail (referentiel/checklist-email.csv)",
+              "ecrans": [(l, c) for c, l in ecrans_email(compte)], "tests": [],
+              "afaire": ["Relire les jugements IA et finaliser l'audit", "Tester à la main désinscription, clavier et rendu en mode sombre"]}
+        out.append({**s_, **sup.get(compte, {})})
+    return out
+
+
+def ecrans_email(compte: str) -> list[tuple[str, str]]:
+    """(code, libellé) des écrans e-mail d'un compte : ceux de l'état consolidé, sinon les 6 écrans types du préfixe du site."""
+    pre = next((f"{s['prefixe_pages']}-EM-" for s in parc.sites() if s.get("compte_email") == compte), "")
+    lib = dict(SUFFIXES_EMAIL)
+    codes = list(dict.fromkeys(c for v in ETAT.get("emails", {}).get(compte, {}).values() for c in v.get("ecrans", {})))
+    if not codes:
+        return [(pre + k, l) for k, l in SUFFIXES_EMAIL]
+    rang = {k: i for i, (k, _) in enumerate(SUFFIXES_EMAIL)}
+    suf = lambda c: re.sub(r"^.*?-EM-", "", c)
+    return [(c, lib.get(suf(c), suf(c).capitalize())) for c in sorted(codes, key=lambda c: (rang.get(suf(c), len(rang)), c))]
 
 
 def e(t: str) -> str:
@@ -368,60 +320,11 @@ JS_ONGLETS = """
 """
 
 
-FAIT = [
-    ("Cadrage", [
-        ("Parc de 8 services, deux baromètres", "6 sites e-commerce clients sur Shopify, 2 comptes Klaviyo"),
-        ("Note de cadrage d'une page, version 5", "tient sur une page A4, vérifié avec scripts/verifier_page_a4.py"),
-        ("Annexe détaillée", "écran par écran avec adresse ou identifiant, méthode, reproductibilité"),
-        ("Échantillon arrêté : 60 écrans", "les 8 mêmes gabarits sur chaque site, 6 écrans par compte Klaviyo"),
-    ]),
-    ("Git et GitHub", [
-        ("Dépôt privé sur le GitHub perso", "itsmatlsr/opquast-barometre"),
-        ("Supports confidentiels exclus de Git", "PDF de formation et synthèse du J1 restent sur le Mac"),
-        ("Exercice Git de l'intersession", "branche perimetre, commit, fusion, arbre affiché"),
-    ]),
-    ("Outillage", [
-        ("MCP Opquast connecté et testé de bout en bout", "de la checklist jusqu'au rapport HTML"),
-        ("Script de contrôles réseau, v0.2.0", "19 règles ; 199 (HSTS d'un an) et 217 (DMARC qui agit) durcies comme le robot"),
-        ("eServices Manager analysé", "organisation Colorz, 0 service sur 10, robot Opquast connecté"),
-        ("axe-core passé sur les 6 sites (WCAG 2.1 A et AA)", "44 pages testées dans le navigateur, 3 comptes clients Shopify hors périmètre"),
-        ("Contrôles réseau des 6 sites", "17 conformes et 2 non conformes (212, 214) sur chaque site"),
-        ("Checklist e-mail Colorz, 41 critères", "W3C, Klaviyo, CNIL, Gmail et Yahoo, mode sombre selon Can I Email"),
-        ("245 règles réparties en trois volets", "déterministe 82 (réseau 25, page 57), probabiliste : robot basics 65, manuel 20 ; 137 écartées pour l'instant"),
-        ("Code de la page passé sur les 47 écrans avec Playwright", "54 règles, 40 écrans testés (4 pages produit refusées par Shopify, 3 comptes clients hors site)"),
-        ("W3C i18n Checker et REDbot sur les 47 écrans", "règles 130, 228, 232, 233 et 206, 211, 226, 227, 228 ; meta charset trop loin dans la page sur les 6 sites"),
-        ("Résultats des scripts saisis dans eServices Manager", "6 audits « scripts sans IA » : 2 654 résultats avec preuve, page par page"),
-        ("E-mails des Secrets de Boutique C évalués et importés", "6 écrans, 41 critères : 62 conformes, 60 non conformes ; audit e-mail dans eServices Manager"),
-        ("État de chaque règle et recommandations", "onglet dédié : 54 règles et 16 critères e-mail non conformes, chacun avec sa recommandation"),
-        ("Audits « Opquast basics » du robot d'eServices Manager, finalisés", "65 règles, 47 pages : scores de 53 % à 60 % ; 12 règles non conformes sur les 6 sites"),
-        ("Parc saisi dans eServices Manager", "8 services, 47 pages des sites, checklists IA (20), scripts (82) et e-mail (41)"),
-        ("REDbot et Opquast devtools comparés sur l'accueil de Boutique F", "11 règles communes : 2 accords, 3 constats sans note REDbot, 2 accords trompeurs (212, 213), 4 désaccords (199, 210, 226, 227)"),
-    ]),
-]
-A_FAIRE = [
-    ("Avant de lancer les audits", [
-        ("Connecter le compte Klaviyo de Boutique F", "le connecteur ne voit que le compte des Secrets de Boutique C"),
-        ("Valider avec la direction", "destinataire du baromètre, outils autorisés"),
-    ]),
-    ("Pendant le J2 et l'intersession 2", [
-        ("Auditer un écran témoin pour mesurer le coût réel", "par exemple l'accueil de Boutique A, un thème à la fois"),
-        ("Contre-examen manuel des 20 règles basics non scriptables", "volet manuel : confirmer ou corriger le verdict du robot, site par site"),
-        ("Comparer le robot à controles_page.js sur les 19 règles communes", "les deux résultats sont dans eServices Manager"),
-        ("Relancer axe-core sur les 47 écrans avec Playwright (nuit)", "npm run axe, puis importer les résultats dans eServices Manager"),
-        ("Ajouter 6 règles au script réseau", "25, 135, 209, 221, 229, 230"),
-        ("Corriger 210 et 213 dans le script réseau", "X-XSS-Protection exclu par le texte V5 ; en-têtes powered-by et Server non cherchés"),
-        ("Évaluer les 6 écrans e-mail de Boutique F", "dès que le compte Klaviyo est connecté"),
-        ("Finaliser les audits dans eServices Manager", "après relecture, pour calculer les scores (niveaux de conformité à définir)"),
-        ("Vérifier dans le navigateur les pages bloquées par Shopify", "voir le détail dans chaque onglet"),
-    ]),
-]
-LIENS = [
-    ("Dépôt GitHub", "https://github.com/itsmatlsr/opquast-barometre", "privé, compte itsmatlsr"),
-    ("Note de cadrage v9", "https://github.com/itsmatlsr/opquast-barometre/blob/main/note_cadrage.md", "une page A4"),
-    ("Checklist e-mail Colorz", "https://github.com/itsmatlsr/opquast-barometre/blob/main/referentiel/checklist-email.md", "41 critères et sources"),
-    ("Cadrage détaillé", "https://github.com/itsmatlsr/opquast-barometre/blob/main/cadrage_detaille.md", "annexe écran par écran"),
-    ("Analyse d'eServices Manager", "https://github.com/itsmatlsr/opquast-barometre/blob/main/eservices-manager.md", "plateforme et plan de saisie"),
-]
+# Listes « Fait » et « À faire » de la vue d'ensemble et liens : propres à une mission, lus dans les compléments
+# optionnels (referentiel/suivi-complements.json) par main() ; vides sinon.
+FAIT: list = []
+A_FAIRE: list = []
+LIENS: list = []
 
 
 def liens_locaux(chemin: Path = RACINE / "liens-locaux.json") -> list[tuple[str, str, str]]:
@@ -434,7 +337,6 @@ def liens_locaux(chemin: Path = RACINE / "liens-locaux.json") -> list[tuple[str,
     return [(lien["titre"], lien["url"], lien.get("detail", "")) for lien in json.loads(chemin.read_text(encoding="utf-8"))]
 
 
-LIENS += liens_locaux()
 
 
 def onglet_referentiels() -> str:
@@ -444,7 +346,7 @@ def onglet_referentiels() -> str:
     email = list(csv.DictReader((RACINE / "referentiel" / "checklist-email.csv").open(encoding="utf-8")))
     o = ['<section class="tab" id="referentiels" role="tabpanel" aria-labelledby="t-referentiels" hidden>',
          '<div class="svc-head"><div class="eyebrow">Référentiels</div><h2>Les règles appliquées</h2>',
-         '<p class="lede">Le baromètre des sites applique les 245 règles d\'Opquast et les règles WCAG d\'axe-core ; le baromètre des e-mails applique la checklist e-mail Colorz.</p></div>',
+         '<p class="lede">Le baromètre des sites applique les 245 règles d\'Opquast et les règles WCAG d\'axe-core ; le baromètre des e-mails applique la checklist e-mail du kit.</p></div>',
          '<div class="explain"><h3>C\'est quoi, les 245 règles ?</h3>',
          '<p>Le référentiel <strong>Opquast « Qualité numérique », version 5 (2025-2030)</strong> rassemble 245 bonnes pratiques que tout site web devrait respecter, '
          'quel que soit son secteur. Il est collaboratif, publié en licence ouverte, en français, anglais et espagnol. Chaque règle est formulée pour être '
@@ -467,8 +369,8 @@ def onglet_referentiels() -> str:
         m = LIB.get(meth.get(r["number"], ""), ("info", "?"))
         o.append(f'<tr data-theme="{e(th)}"><td class="num">{r["number"]}</td><td>{e(th)}</td><td>{e(r["description"]["fr"])}</td><td>{pastille(m[0], m[1])}</td><td class="tool">{e(tags)}</td></tr>')
     o.append('</tbody></table></div>')
-    o.append('<h3>Checklist e-mail Colorz, 41 critères</h3>'
-             '<p class="note">Pour les comptes Klaviyo : critères propres aux e-mails et aux formulaires, tirés du W3C (WCAG), de l\'aide Klaviyo, de la CNIL, '
+    o.append(f'<h3>Checklist e-mail, {len(email)} critères</h3>'
+             '<p class="note">Pour les comptes e-mail : critères propres aux e-mails et aux formulaires, tirés du W3C (WCAG), de l\'aide des outils d\'envoi, de la CNIL, '
              'du CPCE, des exigences de Gmail et Yahoo et, pour le mode sombre, des tableaux open source Can I Email. Détail et sources : <code>referentiel/checklist-email.md</code>.</p>')
     o.append('<div class="tbl"><table class="compact"><thead><tr><th>Id</th><th>Thème</th><th>Critère</th><th>Vérification</th><th>Opquast</th><th>Source</th></tr></thead><tbody>')
     for c in email:
@@ -479,8 +381,6 @@ def onglet_referentiels() -> str:
 
 
 CODE_PASTILLE = {"C": "conforme", "NC": "non-conforme", "NA": "non-applicable", "NT": "non-testé", "I": "indéterminé"}
-ECRANS_EMAIL = [("BOUTIQUEC-EM-POPUP", "Popup"), ("BOUTIQUEC-EM-FOOTER", "Pied de page"), ("BOUTIQUEC-EM-BIENVENUE", "Bienvenue"),
-                ("BOUTIQUEC-EM-PANIER", "Panier"), ("BOUTIQUEC-EM-POSTACHAT", "Post-achat"), ("BOUTIQUEC-EM-CAMPAGNE", "Campagne")]
 
 
 RECO_GEN = {x["code"]: x["recommandation"] for x in __import__("csv").DictReader((RACINE / "referentiel" / "recommandations.csv").open(encoding="utf-8"))} if (RACINE / "referentiel" / "recommandations.csv").exists() else {}
@@ -500,8 +400,8 @@ def onglet_etat() -> str:
          'l\'est, quelle que soit la source. Chaque non-conformité a sa recommandation ; le détail adapté à chaque site (pages, constat, audit eServices Manager) est dans l\'onglet du site.</p></div>',
          '<div class="explain"><h3>Comment lire</h3><p>Un site, une colonne. Survolez une pastille pour voir la source et la preuve. '
          '« Non testé » : la règle n\'a été mesurée par aucun outil sur ce site (pages refusées par Shopify, règle hors périmètre de l\'outil). '
-         'Les 137 règles écartées pour l\'instant n\'apparaissent pas. Tout est aussi saisi dans eServices Manager : 6 audits « scripts sans IA » '
-         'et 6 audits Opquast basics.</p></div>',
+         'Les règles écartées pour l\'instant n\'apparaissent pas. Tout est aussi saisi dans eServices Manager : un audit « scripts sans IA » '
+         'et un audit Opquast basics par site.</p></div>',
          '<h3>Bilan par site</h3><div class="tbl"><table class="compact"><thead><tr><th>Site</th><th>Règles mesurées</th><th>Conformes</th>'
          '<th>Non conformes</th><th>Non applicables</th><th>Non testées</th><th>Taux de conformité</th></tr></thead><tbody>']
     for nom in noms:
@@ -542,9 +442,10 @@ def onglet_etat() -> str:
     o.append('</tbody></table></div>')
     for compte, crits in d.get("emails", {}).items():
         st = [v["statut"] for v in crits.values()]
-        o.append(f'<h3>E-mails : {e(compte)}</h3><p class="note">41 critères de la checklist e-mail Colorz sur 6 écrans (popup, pied de page, bienvenue, '
-                 f'panier abandonné, post-achat, dernière campagne) : {st.count("NC")} critères non conformes sur au moins un écran, {st.count("C")} conformes partout. '
-                 'Évaluation par script et par IA (Claude), Klaviyo en lecture seule ; importée dans eServices Manager. Le compte Klaviyo de Boutique F reste à connecter.</p>')
+        ECRANS_EMAIL = ecrans_email(compte)
+        o.append(f'<h3>E-mails : {e(compte)}</h3><p class="note">{len(st)} critères de la checklist e-mail sur {len(ECRANS_EMAIL)} écrans ({e(", ".join(l.lower() for _, l in ECRANS_EMAIL))}) : '
+                 f'{st.count("NC")} critères non conformes sur au moins un écran, {st.count("C")} conformes partout. '
+                 'Évaluation par script et par IA (Claude), compte en lecture seule ; importée dans eServices Manager.</p>')
         o.append('<div class="tbl"><table class="compact"><thead><tr><th>Critère</th><th>Intitulé</th>'
                  + "".join(f'<th>{e(l)}</th>' for _, l in ECRANS_EMAIL) + '<th>Recommandation</th></tr></thead><tbody>')
         for k, v in sorted(crits.items()):
@@ -562,7 +463,6 @@ def charger_etat() -> dict:
 
 
 ETAT: dict = {}
-NOMS_ETAT = {"Klaviyo Boutique C": "Klaviyo Boutique C"}
 
 
 def liens_audits(sources: list) -> str:
@@ -603,16 +503,17 @@ def bloc_etat_site(s: dict) -> str:
 
 
 def bloc_etat_email(s: dict) -> str:
-    compte = NOMS_ETAT.get(s["nom"], s["nom"])
+    compte = s["nom"]
     crits = ETAT.get("emails", {}).get(compte)
     if not crits:
         return ""
     sid = s["id"]
+    ECRANS_EMAIL = ecrans_email(compte)
     st = [v["statut"] for v in crits.values()]
     src = next(iter(crits.values()))["source"]
-    o = ['<h3>Les 41 critères, écran par écran, et recommandations</h3>',
+    o = [f'<h3>Les {len(st)} critères, écran par écran, et recommandations</h3>',
          f'<p class="note">{st.count("NC")} critères non conformes sur au moins un écran, {st.count("C")} conformes, {st.count("NA")} non applicables, '
-         f'{st.count("NT") + st.count("I")} non tranchés (parcours réels, captures en mode sombre). Évaluation par script et par IA (Claude), Klaviyo en lecture seule. '
+         f'{st.count("NT") + st.count("I")} non tranchés (parcours réels, captures en mode sombre). Évaluation par script et par IA (Claude), compte en lecture seule. '
          f'Audit : <a href="{e(src["url"])}" target="_blank" rel="noopener">{e(src["nom"])}</a>. Survolez une pastille pour voir le résultat de l\'écran.</p>',
          f'<div class="filters"><label for="fs-{sid}">Statut</label><select id="fs-{sid}" class="f-etat" data-table="te-{sid}">'
          '<option value="">Tous</option><option value="NC" selected>Non conformes</option><option value="C">Conformes</option>'
@@ -631,7 +532,7 @@ def bloc_etat_email(s: dict) -> str:
 
 
 def TAUX_NAV(nom: str) -> str:
-    v = ETAT.get("sites", {}).get(nom) or ETAT.get("emails", {}).get(NOMS_ETAT.get(nom, nom))
+    v = ETAT.get("sites", {}).get(nom) or ETAT.get("emails", {}).get(nom)
     if not v:
         return "à faire"
     st = [x["statut"] for x in v.values()]
@@ -655,9 +556,10 @@ def RESUME_MAILS() -> str:
     m = ETAT.get("emails", {})
     if not m:
         return "0 critère évalué pour l'instant"
-    v = next(iter(m.values()))
-    st = [x["statut"] for x in v.values()]
-    return f"Boutique C évalué : {st.count('NC')} critères non conformes sur 41 ; Boutique F à connecter"
+    nc = [sum(1 for x in v.values() if x["statut"] == "NC") for v in m.values()]
+    attendus = len([1 for s in parc.sites() if s.get("compte_email")])
+    reste = f" ; {attendus - len(m)} à connecter" if attendus > len(m) else ""
+    return f"{len(m)} compte(s) évalué(s) : {min(nc)} à {max(nc)} critères non conformes{reste}"
 
 
 def TAUX_SITE(nom: str) -> str:
@@ -670,7 +572,7 @@ def TAUX_SITE(nom: str) -> str:
 
 
 def CRIT_COMPTE(nom: str, total: int) -> str:
-    v = ETAT.get("emails", {}).get(NOMS_ETAT.get(nom, nom))
+    v = ETAT.get("emails", {}).get(nom)
     if not v:
         return pastille("afaire", f"0 sur {total}")
     st = [x["statut"] for x in v.values()]
@@ -678,14 +580,14 @@ def CRIT_COMPTE(nom: str, total: int) -> str:
 
 
 def SOMBRE_COMPTE(nom: str) -> str:
-    v = ETAT.get("emails", {}).get(NOMS_ETAT.get(nom, nom))
+    v = ETAT.get("emails", {}).get(nom)
     if not v:
         return pastille("afaire", "à vérifier")
     return pastille("ko", "non prévu") if any(v.get(k, {}).get("statut") == "NC" for k in ("EM35", "EM36", "EM37")) else pastille("ok", "prévu")
 
 
 def THEME_COMPTE(nom: str, theme: str) -> str:
-    v = ETAT.get("emails", {}).get(NOMS_ETAT.get(nom, nom))
+    v = ETAT.get("emails", {}).get(nom)
     if not v:
         return pastille("afaire", "à évaluer")
     st = [x["statut"] for x in v.values() if x["theme"] == theme]
@@ -726,6 +628,7 @@ RELEVE: dict = {}
 
 
 def charger_annexes() -> None:
+    maj_abr()
     EXEMPLES.update(json.loads((RACINE / "referentiel" / "exemples.json").read_text(encoding="utf-8")))
     LECTURE.update(dernier_json("resultats/lecture-critique-*/lecture.json"))
     FICHE.update(dernier_json("resultats/contre-examen-*/fiche.json"))
@@ -759,7 +662,7 @@ def charger_annexes() -> None:
                 r["sources"].append(ce)
             if d:
                 r["statut"] = d
-                r["determinant"].insert(0, "Contre-examen (tranché par Claude, validé par Mattea) : " + x["decision_motif"])
+                r["determinant"].insert(0, f"Contre-examen (tranché par Claude, validé par {qui()}) : " + x["decision_motif"])
                 r["recommandation"] = (f"Sur {nom} : " + recos[str(x["regle"])]) if d == "NC" and str(x["regle"]) in recos else ""
             else:
                 r["determinant"].insert(0, "Contre-examen : " + x["decision_motif"])
@@ -832,7 +735,7 @@ def charger_annexes() -> None:
         pre = [c for c in pa["cases_precochees"] if any(w in c.lower() for w in ("offre", "offer", "news", "e-mail", "email"))]
         ETAT["sites"][nom]["33"] = {"titre": ref["33"]["description"]["fr"], "theme": ", ".join(ref["33"]["metadata"].get("Thématiques", [])),
             "methode": "parcours", "statut": "NC" if pre else "C", "scripts": None, "robot": None, "pages_nc": ["Paiement"] if pre else [],
-            "determinant": ["Parcours réel (tranché par Claude, validé par Mattea) : " + (f"à la page de paiement, la case « {pre[0]} » est cochée d'avance." if pre else "aucune case d'inscription cochée d'avance à la page de paiement.")],
+            "determinant": [f"Parcours réel (tranché par Claude, validé par {qui()}) : " + (f"à la page de paiement, la case « {pre[0]} » est cochée d'avance." if pre else "aucune case d'inscription cochée d'avance à la page de paiement.")],
             "sources": [{"nom": AUD["noms"]["contre_examen"].format(site=nom), "url": AUD["base"] + AUD["contre_examen"][nom], "statut": "NC" if pre else "C"}] if nom in AUD.get("contre_examen", {}) else [],
             "recommandation": (f"Sur {nom} (paiement) : " + recos["33"]) if pre else ""}
 
@@ -868,6 +771,11 @@ RAISON: dict = {}
 EXCLUSIONS: dict = {}
 
 
+def url_audit(typ: str, nom: str) -> str:
+    """Adresse de l'audit eServices Manager d'un site (referentiel/audits-esm.json), vide s'il n'y est pas."""
+    return AUD.get("base", "") + AUD[typ][nom] if nom in AUD.get(typ, {}) else ""
+
+
 def lien(nom: str, url: str) -> str:
     ext = url.startswith("http")
     return f'<a href="{e(url)}"' + (' target="_blank" rel="noopener"' if ext else ' class="ancre"') + f'>{e(nom)}</a>'
@@ -875,20 +783,19 @@ def lien(nom: str, url: str) -> str:
 
 def liens_ecart(x: dict, nom: str, sid: str) -> str:
     """Liens vers l'audit (ou les audits) d'où vient chaque écart."""
-    b = AUD["base"]
-    basics = ("Opquast basics (robot)", b + AUD["basics"][nom])
-    scripts = ("Opquast scripts sans IA", b + AUD["scripts"][nom])
+    basics = ("Opquast basics (robot)", url_audit("basics", nom))
+    scripts = ("Opquast scripts sans IA", url_audit("scripts", nom))
+    ce, cep = (source_ce(), url_audit("contre_examen", nom)), (f"Contre-examen et parcours (validé par {qui()})", url_audit("contre_examen", nom))
     nu_acc = next(iter(OUTILS_LIGNE.get(nom, {}).get("nu", {}).values()), {}).get("details_url", "")
     m = {"robot / scripts": [basics, scripts],
-         "robot / contre-examen navigateur": [basics, ("Contre-examen (validé par Mattea)", b + AUD["contre_examen"][nom])],
+         "robot / contre-examen navigateur": [basics, ce],
          "nos outils entre eux": [scripts, ("Validateur Nu", nu_acc or f"#{sid}-nu")],
          "eServices Manager": [scripts],
          "relevé navigateur": [("Traceurs avant consentement", f"#{sid}-traceurs")],
          "validateur Nu": [("Validateur Nu", f"#{sid}-nu")],
-         "parcours réel (paiement)": [("Contre-examen et parcours (validé par Mattea)", b + AUD["contre_examen"][nom])],
+         "parcours réel (paiement)": [cep],
          "Lighthouse / IBM Equal Access / axe-core": [("Lighthouse", f"#{sid}-lighthouse"), ("IBM Equal Access", f"#{sid}-ibm"), ("axe-core", f"#{sid}-axe")]}
-    par_audit = {"Opquast basics (robot)": basics, "Contre-examen (validé par Mattea)": ("Contre-examen (validé par Mattea)", b + AUD["contre_examen"][nom]),
-                 "Parcours réel": ("Contre-examen et parcours (validé par Mattea)", b + AUD["contre_examen"][nom]),
+    par_audit = {"Opquast basics (robot)": basics, source_ce(): ce, "Parcours réel": cep,
                  "axe-core": ("axe-core", f"#{sid}-axe"), "IBM Equal Access": ("IBM Equal Access", f"#{sid}-ibm"),
                  "Validateur Nu (W3C)": ("Validateur Nu", f"#{sid}-nu"), "Lighthouse accessibilité": ("Lighthouse", f"#{sid}-lighthouse"),
                  "Traceurs avant consentement": ("Traceurs avant consentement", f"#{sid}-traceurs")}
@@ -919,8 +826,8 @@ def bloc_lecture(nom: str, sid: str) -> tuple[str, str]:
                 f'<p><strong>Statut de départ.</strong> {base(x)}</p>'
                 f'<p><strong>Constat.</strong> {e(x["constat"])}</p><p><strong>Pourquoi.</strong> {e(x["pourquoi"])}</p>'
                 f'<p><strong>Que faire.</strong> {reco(x["recommandation"], x["regle"])}</p>'
-                f'<p><strong>Statut à retenir.</strong> {statut(x)}{" " + pastille("afaire", "à arbitrer par Mattea") if x.get("a_arbitrer") else ""}</p><p><strong>Audit.</strong> {liens_ecart(x, nom, sid) or "-"}</p></div>')
-    o = ['<p class="note">Atelier « 3 résultats intéressants » du support J2. Pour chaque écart : le constat, pourquoi c\'est un faux positif, '
+                f'<p><strong>Statut à retenir.</strong> {statut(x)}{" " + pastille("afaire", f"à arbitrer par {qui()}") if x.get("a_arbitrer") else ""}</p><p><strong>Audit.</strong> {liens_ecart(x, nom, sid) or "-"}</p></div>')
+    o = ['<p class="note">Les 3 résultats les plus intéressants d\'abord. Pour chaque écart : le constat, pourquoi c\'est un faux positif, '
          'un faux négatif ou autre chose, ce qu\'il faut faire, et le statut à retenir dans le baromètre. '
          f'Sur les règles mesurées à la fois par le robot et nos scripts, ils sont d\'accord {l["accords_robot_scripts"]} fois.</p>',
          '<h4>Les 3 résultats intéressants</h4><div class="trois">' + "".join(carte(x) for x in l["trois_interessants"]) + '</div>']
@@ -938,15 +845,15 @@ def bloc_contre_examen(nom: str) -> tuple[str, str]:
     lignes = FICHE.get(nom, [])
     if not lignes:
         return "", "à faire"
-    o = ['<p class="note">Les 20 règles du socle Opquast basics qu\'aucun script ne peut trancher (9 retirées le 12/11 : compte, commande ou envoi réel) : verdict du robot, constat relevé dans le navigateur, '
-         'puis décision <strong>tranchée par Claude, validée par Mattea le 12/11</strong> ; « parcours de Mattea » quand il faut un compte, une commande ou un envoi. '
-         f'Saisi dans eServices Manager avec la règle 33 : {lien(AUD["noms"]["contre_examen"].format(site=nom), AUD["base"] + AUD["contre_examen"][nom])}.</p>',
+    o = ['<p class="note">Les règles du socle Opquast basics qu\'aucun script ne peut trancher (hors règles retirées : compte, commande ou envoi réel) : verdict du robot, constat relevé dans le navigateur, '
+         f'puis décision <strong>tranchée par Claude, à valider par {e(qui())}</strong> ; « parcours de {e(qui())} » quand il faut un compte, une commande ou un envoi. '
+         f'Saisi dans eServices Manager avec la règle 33 : {lien(AUD["noms"]["contre_examen"].format(site=nom), url_audit("contre_examen", nom))}.</p>',
          '<div class="tbl"><table class="compact"><thead><tr><th>N°</th><th>Règle</th><th>Robot</th><th>Constat dans le navigateur</th><th>Décision</th><th>Recommandation</th></tr></thead><tbody>']
     n_dec = 0
     for x in lignes:
         d = x.get("decision_statut")
         n_dec += bool(d)
-        dec = (pastille(DECISION_PASTILLE[d]) + f'<br><small>{e(x.get("decision_motif", ""))}</small>') if d else pastille("afaire", "parcours de Mattea") + f'<br><small>{e(x.get("decision_motif", ""))}</small>'
+        dec = (pastille(DECISION_PASTILLE[d]) + f'<br><small>{e(x.get("decision_motif", ""))}</small>') if d else pastille("afaire", f"parcours de {qui()}") + f'<br><small>{e(x.get("decision_motif", ""))}</small>'
         rob = pastille(DECISION_PASTILLE.get(x["robot"], "non-testé")) if x["robot"] else "-"
         rc = f'<br><small>{e(x["robot_constat"][:200])}</small>' if x.get("robot_constat") else ""
         rec = reco(ETAT.get("sites", {}).get(nom, {}).get(str(x["regle"]), {}).get("recommandation", ""), x["regle"]) if d in ("NC", None) else ""
@@ -993,12 +900,12 @@ def _pages(nom):
 
 def comp_scripts(nom, regles):
     sc = [v["scripts"] for v in regles.values() if v["scripts"] in ("C", "NC")]
-    return (f'{sc.count("C")} conformes, {sc.count("NC")} non conformes', "ok", AUD["base"] + AUD["scripts"][nom])
+    return (f'{sc.count("C")} conformes, {sc.count("NC")} non conformes', "ok", url_audit("scripts", nom))
 
 
 def comp_basics(nom, regles):
-    s = {"Boutique A": "53,1", "Boutique B": "53,2", "Boutique C": "59,6", "Boutique D": "54,1", "Boutique E": "60,0", "Boutique F": "53,2"}.get(nom, "-")
-    return (f"score {s} %", "ok", AUD["base"] + AUD["basics"][nom])
+    v = COMPLEMENTS.get("scores_basics", {}).get(nom)  # score relevé dans eServices Manager (compléments optionnels)
+    return (f"score {v:.1f} %".replace(".", ",") if v is not None else "score -", "ok", url_audit("basics", nom))
 
 
 def comp_ce(nom, regles):
@@ -1006,7 +913,7 @@ def comp_ce(nom, regles):
     d = [x for x in f if x.get("decision_statut")]
     if not f:
         return ("à faire", "afaire", "")
-    return (f'{len(d)} / {len(f)} tranchées (validées par Mattea), {sum(1 for x in d if x["decision_statut"] == "NC")} non conformes', "attention", AUD["base"] + AUD["contre_examen"][nom] if nom in AUD.get("contre_examen", {}) else "")
+    return (f'{len(d)} / {len(f)} tranchées (à valider par {qui()}), {sum(1 for x in d if x["decision_statut"] == "NC")} non conformes', "attention", url_audit("contre_examen", nom))
 
 
 def comp_axe(nom, regles):
@@ -1089,7 +996,8 @@ def scores_site(nom: str) -> dict:
     sc = {}
     sc["opquast"] = _taux([v["statut"] for v in regles.values()])
     sc["opquast-scripts"] = _taux([v["scripts"] for v in regles.values() if v["scripts"]])
-    sc["opquast-basics"] = {"Boutique A": 53, "Boutique B": 53, "Boutique C": 60, "Boutique D": 54, "Boutique E": 60, "Boutique F": 53}.get(nom)
+    b = COMPLEMENTS.get("scores_basics", {}).get(nom)
+    sc["opquast-basics"] = round(b) if b is not None else None
     sc["contre-examen"] = _taux([x.get("decision_statut") for x in FICHE.get(nom, []) if x.get("decision_statut")])
     a = AXE.get("sites", {}).get(nom)
     if a:
@@ -1144,7 +1052,8 @@ def exporter_scores(sites: list) -> None:
     d = RACINE / "resultats" / f"scores-{date.today():%Y-%m-%d}"
     d.mkdir(parents=True, exist_ok=True)
     tout = {n: scores_site(n) for n in sites}
-    tout["Klaviyo Boutique C"] = score_email("Klaviyo Boutique C")
+    for compte in ETAT.get("emails", {}):
+        tout[compte] = score_email(compte)
     (d / "scores.json").write_text(json.dumps(tout, ensure_ascii=False, indent=1), encoding="utf-8")
     with (d / "scores.csv").open("w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
@@ -1333,7 +1242,7 @@ def moyenne(v):
 def coup_doeil_site(nom: str, regles: dict) -> str:
     sc = scores_site(nom)
     aud = [(lib, sc[k], f"{sc[k]} %") for k, lib in (("opquast-scripts", "Scripts sans IA"), ("opquast-basics", "Robot basics"), ("contre-examen", "Contre-examen")) if sc.get(k) is not None]
-    o = ['<div class="viz-grille">', svg_barres([("Score du baromètre", sc["global"], f'{sc["global"]} %, note {note_lettre(sc["global"])}')] + aud, 100, "Conformité Opquast : baromètre et audits"),
+    o = ['<div class="viz-grille">', svg_barres([("Score du baromètre", sc["global"], f'{sc["global"]} %, note {note_lettre(sc["global"])}')] * (sc["global"] is not None) + aud, 100, "Conformité Opquast : baromètre et audits"),
          svg_empile([("Opquast, 245 règles", comptes_statuts(regles))], "Les 245 règles Opquast, par statut")]
     o.append('</div>')
     return "".join(o)
@@ -1449,8 +1358,8 @@ def bloc_traceurs(nom):
             f'<p class="note"><strong>Recommandation.</strong> {reco("Sur " + nom + " : " + ("bloquer " + ", ".join(t["cookies_de_mesure"]) + " jusqu'au consentement." if t["cookies_de_mesure"] else "vérifier, cookie par cookie, que les appels aux domaines tiers attendent le consentement."), "outil-traceurs")}</p>')
 
 
-ABR = {"Script réseau (controles_reseau.py)": "Réseau", "Script code de la page (controles_page.js)": "Page", "W3C i18n Checker": "i18n",
-       "REDbot": "REDbot", "Opquast basics (robot)": "Robot", "Contre-examen (validé par Mattea)": "Contre-ex.", "axe-core": "axe",
+ABR_MODELE = {"Script réseau (controles_reseau.py)": "Réseau", "Script code de la page (controles_page.js)": "Page", "W3C i18n Checker": "i18n",
+       "REDbot": "REDbot", "Opquast basics (robot)": "Robot", "Contre-examen (validé par {responsable})": "Contre-ex.", "axe-core": "axe",
        "IBM Equal Access": "IBM", "Pa11y (HTML_CodeSniffer)": "Pa11y", "Lighthouse": "Lighthouse", "Validateur Nu (W3C)": "Nu",
        "Qualys SSL Labs": "SSL Labs", "MDN HTTP Observatory": "Observatory", "Sitemap (xmllint)": "Sitemap",
        # deuxièmes sources du 12/11 (plusieurs outils de même nature partagent une colonne)
@@ -1463,6 +1372,16 @@ ABR = {"Script réseau (controles_reseau.py)": "Réseau", "Script code de la pag
        "Impression PDF (cookies refusés)": "PDF imprimé", "HTML brut et CSS (sans JavaScript)": "HTML brut", "curl": "curl",
        "API panier Shopify (cart.js)": "Shopify", "API panier Shopify (shipping_rates)": "Shopify", "Page de paiement (affichée)": "Paiement",
        "Lecture IA du DOM et des captures (probabiliste)": "DOM (IA)", "axe-core et IBM (aria-hidden, tableaux)": "axe"}
+ABR: dict = {}
+
+
+def maj_abr() -> None:
+    """Colonnes courtes des sources ; la source du contre-examen porte le nom de la personne responsable."""
+    ABR.clear()
+    ABR.update({k.format(responsable=qui()) if "{responsable}" in k else k: v for k, v in ABR_MODELE.items()})
+
+
+maj_abr()
 CASE = {"C": ('<span class="cell p-done" title="conforme">C</span>'), "NC": ('<span class="cell p-block" title="non conforme">NC</span>'),
         "NA": ('<span class="cell p-na" title="non applicable">NA</span>')}
 
@@ -1540,7 +1459,7 @@ def onglet(s: dict, reseau: dict) -> str:
     if corps:
         o.append(acc("Lecture critique : faux positifs, faux négatifs, résultats inattendus", e(res), corps, ident=f"{sid}-lecture"))
     # Opquast : les 245 règles (scripts, robot et contre-examen réunis)
-    t = [f'<p class="note">Statut de chaque règle, toutes sources réunies : {lien("audit scripts sans IA", AUD["base"] + AUD["scripts"][nom])} · {lien("audit Opquast basics (robot)", AUD["base"] + AUD["basics"][nom])}.</p>'
+    t = [f'<p class="note">Statut de chaque règle, toutes sources réunies : {lien("audit scripts sans IA", url_audit("scripts", nom))} · {lien("audit Opquast basics (robot)", url_audit("basics", nom))}.</p>'
          f'<div class="filters"><label for="fs-{sid}">Statut</label><select id="fs-{sid}" class="f-etat" data-table="te-{sid}">'
          '<option value="">Tous</option><option value="NC">Non conformes</option><option value="C">Conformes</option>'
          '<option value="NA">Non applicables</option><option value="NT">Non tranchées</option><option value="AF">À faire</option><option value="EC">Écartées</option></select>'
@@ -1585,8 +1504,10 @@ def onglet(s: dict, reseau: dict) -> str:
 def onglet_compte_email(s: dict) -> str:
     import csv
     sid = s["id"]
-    compte = NOMS_ETAT.get(s["nom"], s["nom"])
+    compte = s["nom"]
     crits = ETAT.get("emails", {}).get(compte)
+    ECRANS_EMAIL = ecrans_email(compte)
+    liste = list(csv.DictReader((RACINE / "referentiel" / "checklist-email.csv").open(encoding="utf-8")))
     aud = json.loads((RACINE / "referentiel" / "audits-esm.json").read_text(encoding="utf-8"))
     o = [f'<section class="tab" id="{sid}" role="tabpanel" aria-labelledby="t-{sid}" hidden>',
          f'<div class="svc-head"><div class="eyebrow">Baromètre des e-mails</div><h2>{e(s["nom"])}</h2><p class="lede">{e(s["desc"])}</p></div>']
@@ -1598,18 +1519,17 @@ def onglet_compte_email(s: dict) -> str:
               f'<div class="stat"><b>{c}</b><span>critères conformes partout</span></div>',
               f'<div class="stat"><b>{nc}</b><span>critères non conformes sur au moins un écran</span></div>',
               f'<div class="stat"><b>{st.count("NA") + st.count("NT") + st.count("I")}</b><span>non applicables ou non tranchés</span></div></section>']
-    url = aud["base"] + aud["email"][compte] if compte in aud["email"] else ""
-    comp = [(aud["noms"]["email"].format(site=compte), "Script sur le HTML des templates + jugement IA (Claude) : 41 critères sur 6 écrans",
-             ("ok", "fait le 12/11") if crits else ("afaire", "à faire"), url),
+    url = aud["base"] + aud["email"][compte] if compte in aud.get("email", {}) else ""
+    comp = [(aud["noms"]["email"].format(site=compte), f"Script sur le HTML des templates + jugement IA (Claude) : {len(liste)} critères sur {len(ECRANS_EMAIL)} écrans",
+             ("ok", "fait le " + ETAT.get("date", "")) if crits else ("afaire", "à faire"), url),
             ("Tests de parcours à la main", "Désinscription en un clic, clavier, lecteur d'écran, captures en mode sombre (Gmail, Outlook, Apple Mail)", ("afaire", "à faire"), "")]
     if not crits:
-        comp.insert(0, ("Accès au compte Klaviyo", "Connecter le compte au connecteur Klaviyo (lecture seule)", ("afaire", "à faire"), ""))
+        comp.insert(0, ("Accès au compte e-mail", "Connecter le compte à son connecteur (lecture seule)", ("afaire", "à faire"), ""))
     o.append('<h3>De quoi se compose le baromètre</h3><div class="tbl"><table class="compact"><thead><tr><th>Audit</th><th>Ce qu\'il mesure</th><th>État</th><th>eServices Manager</th></tr></thead><tbody>')
     for titre, quoi, (cls, lib), u in comp:
         o.append(f'<tr><td><strong>{e(titre)}</strong></td><td>{e(quoi)}</td><td>{pastille(cls, lib)}</td><td>{(f"<a href=\"{e(u)}\" target=\"_blank\" rel=\"noopener\">ouvrir l&#x27;audit</a>") if u else "-"}</td></tr>')
     o.append('</tbody></table></div>')
-    liste = list(csv.DictReader((RACINE / "referentiel" / "checklist-email.csv").open(encoding="utf-8")))
-    o.append('<details class="acc"><summary><span class="acc-t">Les 41 critères de la checklist e-mail</span><span class="acc-r">statut par écran, résultat et recommandation</span></summary><div class="acc-body">'
+    o.append(f'<details class="acc"><summary><span class="acc-t">Les {len(liste)} critères de la checklist e-mail</span><span class="acc-r">statut par écran, résultat et recommandation</span></summary><div class="acc-body">'
              f'<div class="filters"><label for="fs-{sid}">Statut</label><select id="fs-{sid}" class="f-etat" data-table="te-{sid}">'
              '<option value="">Tous</option><option value="NC">Non conformes</option><option value="C">Conformes</option>'
              '<option value="NA">Non applicables</option><option value="NT">Non tranchés</option><option value="AF">À faire</option><option value="EC">Écartées</option></select>'
@@ -1638,7 +1558,7 @@ def onglet_compte_email(s: dict) -> str:
         grp = {}
         for x in lec["ecarts"]:
             g = grp.setdefault((x["regle"], x["type"]), {**x, "ecrans": []})
-            g["ecrans"].append(x["constat"].split(" :")[0].replace("Sur ", "").replace("BOUTIQUEC-EM-", "").lower())
+            g["ecrans"].append(re.sub(r"^.*?-EM-", "", x["constat"].split(" :")[0].replace("Sur ", "")).lower())
         cartes = []
         for (crit, typ), x in grp.items():
             cls, lib = TYPE_PASTILLE.get(typ, ("info", typ))
@@ -1731,8 +1651,8 @@ def vue_ensemble(reseau: dict, dates: dict) -> str:
          f'<span>{len(sites)} sites e-commerce · {sum(len(x["ecrans"]) for x in sites)} pages</span>'
          f'<span>Opquast 245 règles + axe-core WCAG 2.1</span><span class="go">{RESUME_SITES()} →</span></a>',
          f'<a class="baro baro-mails" href="#barometre-emails"><span class="eyebrow">Baromètre 2</span><b>E-mails</b>'
-         f'<span>{len(mails)} comptes Klaviyo · {sum(len(x["ecrans"]) for x in mails)} écrans</span>'
-         f'<span>Checklist e-mail Colorz, 41 critères</span><span class="go">{RESUME_MAILS()} →</span></a>',
+         f'<span>{len(mails)} comptes e-mail · {sum(len(x["ecrans"]) for x in mails)} écrans</span>'
+         f'<span>Checklist e-mail du kit</span><span class="go">{RESUME_MAILS()} →</span></a>',
          '</section>',
          '<section class="status" aria-label="État en chiffres">',
          f'<div class="stat"><b>{len(SERVICES)}</b><span>services dans le parc</span></div>',
@@ -1741,6 +1661,8 @@ def vue_ensemble(reseau: dict, dates: dict) -> str:
          '<section class="cols">']
     for titre, groupes, marque in (("Fait", FAIT, ("done", "✓")), ("À faire", A_FAIRE, ("todo", "→"))):
         o.append(f'<div class="panel"><h2>{titre}</h2>')
+        if not groupes:
+            o.append('<p class="note">Rien de consigné (liste propre à la mission : referentiel/suivi-complements.json).</p>')
         for g, items in groupes:
             o.append(f'<div class="group"><h3>{e(g)}</h3><ul class="items">')
             for t, d in items:
@@ -1763,8 +1685,8 @@ REF_SITES = """
 <div class="tbl"><table class="compact refs"><thead><tr><th>Référentiel</th><th>Ce que c'est</th><th>Pourquoi on l'utilise</th><th>Comment on le vérifie</th></tr></thead><tbody>
 <tr><td><strong>Opquast « Qualité numérique » V5</strong><br><small>245 règles</small></td>
 <td>Bonnes pratiques de qualité web, collaboratives et en licence ouverte, en 14 thèmes : contenus, formulaires, e-commerce, sécurité, données personnelles… Chaque règle se vérifie par oui ou non.</td>
-<td>C'est le référentiel de la formation et il couvre <strong>toute la qualité d'un site</strong>, pas seulement l'accessibilité. Ses règles e-commerce (39) collent à des boutiques en ligne. Les mêmes règles sur chaque site rendent les 6 sites comparables.</td>
-<td>Trois volets : 82 par nos scripts (déterministe), 65 par le robot Opquast basics d'eServices Manager (probabiliste), dont 20 contre-examinées à la main ; 128 écartées pour l'instant (voir ci-dessous).</td></tr>
+<td>C'est le référentiel Opquast et il couvre <strong>toute la qualité d'un site</strong>, pas seulement l'accessibilité. Ses règles e-commerce (39) collent à des boutiques en ligne. Les mêmes règles sur chaque site rendent les sites du parc comparables.</td>
+<td>Trois volets : nos scripts (déterministe), le robot Opquast basics d'eServices Manager (probabiliste), dont une partie contre-examinée à la main ; le reste écarté pour l'instant (voir ci-dessous).</td></tr>
 <tr><td><strong>WCAG 2.1 A et AA</strong><br><small>via axe-core</small></td>
 <td>Les règles internationales d'accessibilité du W3C. « A » est le minimum, « AA » le niveau attendu par la loi. axe-core (Deque, open source) vérifie automatiquement les critères mesurables.</td>
 <td><strong>C'est ce que la loi demande</strong> : l'European Accessibility Act s'applique à ces sites e-commerce depuis juin 2025 et renvoie à la norme EN 301 549, donc aux WCAG 2.1 AA. Il couvre aussi des points absents d'Opquast : nom des boutons, attributs ARIA, messages d'état.</td>
@@ -1774,9 +1696,9 @@ REF_SITES = """
 <h4>Qui vérifie quoi : les 245 règles Opquast</h4>
 <div class="tbl"><table class="compact"><thead><tr><th>Méthode</th><th>Règles</th><th>Outil</th><th>Coût</th></tr></thead><tbody>
 <tr><td><strong>Robot Opquast basics</strong> (probabiliste)</td><td class="num">65</td><td>eServices Manager, checklist native Opquast basics ; 6 règles ne relèvent que de lui</td><td>crédits IA d'eServices Manager</td></tr>
-<tr><td><strong>Manuel</strong></td><td class="num">20</td><td>règles basics non scriptables : verdict du robot contre-examiné par Mattea</td><td>temps</td></tr>
+<tr><td><strong>Manuel</strong></td><td class="num">20</td><td>règles basics non scriptables : verdict du robot contre-examiné par la personne responsable</td><td>temps</td></tr>
 <tr><td><strong>Réseau</strong> (déterministe)</td><td class="num">25</td><td><code>controles_reseau.py</code> v0.2.0 (19 en place), W3C i18n Checker, REDbot</td><td>aucun</td></tr>
-<tr><td><strong>Code de la page</strong> (déterministe)</td><td class="num">57</td><td><code>controles_page.js</code> via Playwright sur les 47 écrans, axe-core</td><td>aucun</td></tr>
+<tr><td><strong>Code de la page</strong> (déterministe)</td><td class="num">57</td><td><code>controles_page.js</code> via Playwright sur les écrans du parc, axe-core</td><td>aucun</td></tr>
 <tr><td><strong>Écartées pour l'instant</strong></td><td class="num">137</td><td>non mesurées : jugement visuel ou parcours réel (commande, compte, formulaires)</td><td>aucun</td></tr>
 </tbody></table></div>
 <p class="note">Les résultats des scripts et du robot sont saisis dans eServices Manager (un audit « scripts sans IA » et un audit Opquast basics par site) et réunis règle par règle dans l'onglet <a href="#etat">État et recommandations</a> et dans l'onglet de chaque site. La méthode de chaque règle figure dans l'onglet <a href="#referentiels">Référentiels</a>.</p>
@@ -1801,7 +1723,7 @@ REF_SITES = """
 
 <h4>Référentiels écartés</h4>
 <ul class="plain">
-<li><strong>RGAA</strong> (méthode française des WCAG, 106 critères) : obligatoire seulement pour les organismes publics et les entreprises de plus de 250 M€ de chiffre d'affaires, ce qui n'est pas le cas de ces clients ; plusieurs jours d'expertise par site. axe-core en couvre la partie automatique.</li>
+<li><strong>RGAA</strong> (méthode française des WCAG, 106 critères) : obligatoire seulement pour les organismes publics et les entreprises de plus de 250 M€ de chiffre d'affaires ; plusieurs jours d'expertise par site. axe-core en couvre la partie automatique.</li>
 <li><strong>RGESN</strong> (écoconception, 79 critères) : hors calendrier ; les 32 règles Opquast étiquetées Écoconception en donnent un premier signal.</li>
 </ul>
 """
@@ -1809,16 +1731,16 @@ REF_SITES = """
 REF_EMAILS = """
 <h3>Le référentiel utilisé, et pourquoi</h3>
 <div class="tbl"><table class="compact refs"><thead><tr><th>Référentiel</th><th>Ce que c'est</th><th>Pourquoi on l'utilise</th><th>Comment on le vérifie</th></tr></thead><tbody>
-<tr><td><strong>Checklist e-mail Colorz</strong><br><small>41 critères, version 2</small></td>
+<tr><td><strong>Checklist e-mail du kit</strong><br><small>referentiel/checklist-email.csv</small></td>
 <td>Critères propres aux e-mails et aux formulaires d'inscription, en 6 thèmes : accessibilité, contenu, conformité, délivrabilité, formulaires, mode sombre. 26 critères sont reliés à une règle Opquast.</td>
 <td><strong>Opquast est fait pour le web</strong> : plus de la moitié de ses règles n'a pas de sens pour un e-mail (sitemap, robots.txt, page 404, navigation…), et il ne parle ni de texte de prévisualisation, ni de désinscription en un clic, ni d'authentification du domaine d'envoi, ni de mode sombre.</td>
-<td>Script sur le HTML des templates lus par le connecteur Klaviyo (lecture seule) et DNS du domaine d'envoi, puis jugement IA (Claude) ; parcours réels à la main. Résultats importés dans eServices Manager.</td></tr>
+<td>Script sur le HTML des templates lus par le connecteur de l'outil d'envoi (lecture seule) et DNS du domaine d'envoi, puis jugement IA (Claude) ; parcours réels à la main. Résultats importés dans eServices Manager.</td></tr>
 </tbody></table></div>
 
-<h4>D'où viennent les 41 critères</h4>
+<h4>D'où viennent les critères</h4>
 <div class="tbl"><table class="compact"><thead><tr><th>Source</th><th>Critères</th><th>Pourquoi cette source</th></tr></thead><tbody>
 <tr><td><strong>W3C, WCAG 2.1 et 2.2</strong></td><td>Accessibilité (EM01 à EM12)</td><td>Un e-mail est du HTML : les mêmes règles d'accessibilité s'appliquent (alternatives, contraste, langue, intitulés de liens).</td></tr>
-<tr><td><strong>Aide Klaviyo</strong> (e-mails et formulaires accessibles, délivrabilité)</td><td>Contenu, formulaires, délivrabilité</td><td>L'outil utilisé par Colorz : ses recommandations et ses réglages (contour de focus, alertes de l'éditeur, domaine d'envoi).</td></tr>
+<tr><td><strong>Aide Klaviyo</strong> (e-mails et formulaires accessibles, délivrabilité)</td><td>Contenu, formulaires, délivrabilité</td><td>Un outil d'envoi répandu : ses recommandations et ses réglages (contour de focus, alertes de l'éditeur, domaine d'envoi).</td></tr>
 <tr><td><strong>CNIL et CPCE article L34-5</strong></td><td>Conformité (EM18 à EM24)</td><td>La loi française de la prospection par e-mail : consentement préalable, désinscription simple, identité de l'annonceur.</td></tr>
 <tr><td><strong>Exigences de Gmail et Yahoo</strong> (2024)</td><td>Délivrabilité (EM25 à EM29)</td><td>Sans SPF, DKIM, DMARC et désinscription en un clic, les e-mails n'arrivent plus en boîte de réception chez ces fournisseurs.</td></tr>
 <tr><td><strong>Can I Email</strong> (open source, licence MIT) et guides Litmus</td><td>Mode sombre (EM35 à EM41)</td><td>Tableaux de compatibilité client par client : Gmail et Yahoo ignorent les styles prévus pour le mode sombre, Outlook Windows inverse tout, Apple Mail les respecte.</td></tr>
@@ -1846,7 +1768,7 @@ def onglet_barometre_sites(reseau: dict, dates: dict) -> str:
     sites = [x for x in SERVICES if x["cat"] == "E-commerce"]
     o = ['<section class="tab" id="barometre-sites" role="tabpanel" aria-labelledby="t-barometre-sites" hidden>',
          '<div class="svc-head"><div class="eyebrow">Baromètre 1</div><h2>Baromètre des sites</h2>',
-         f'<p class="lede">Un seul objectif de contrôle : la conformité des {len(sites)} sites e-commerce Shopify aux règles Opquast V5. '
+         f'<p class="lede">Un seul objectif de contrôle : la conformité des {len(sites)} sites du parc aux règles Opquast V5. '
          'Trois audits Opquast tranchent les règles ; les autres outils servent seulement à recouper ces règles. Une ligne par audit ou outil, une colonne par site.</p></div>',
          graphiques_parc(sites),
          '<h3>Ce qui compose le baromètre, site par site</h3>',
@@ -1887,35 +1809,36 @@ def onglet_barometre_emails() -> str:
         themes.setdefault(c["theme"], []).append(c["id"])
     o = ['<section class="tab" id="barometre-emails" role="tabpanel" aria-labelledby="t-barometre-emails" hidden>',
          '<div class="svc-head"><div class="eyebrow">Baromètre 2</div><h2>Baromètre des e-mails</h2>',
-         '<p class="lede">2 comptes Klaviyo, 6 écrans chacun (popup, pied de page, bienvenue, panier abandonné, post-achat, campagne). '
-         'Référentiel : checklist e-mail Colorz, 41 critères. Klaviyo en lecture seule.</p></div>',
+         f'<p class="lede">{len(mails)} compte(s) e-mail, {len(SUFFIXES_EMAIL)} écrans types chacun (popup, pied de page, bienvenue, panier abandonné, post-achat, campagne). '
+         f'Référentiel : checklist e-mail du kit, {len(crit)} critères. Comptes en lecture seule.</p></div>',
          REF_EMAILS,
          '<h3>Où en est chaque compte</h3><div class="tbl"><table><thead><tr><th>Compte</th><th>Accès</th>'
          '<th>Critères évalués</th><th>Mode sombre</th><th>Écrans</th></tr></thead><tbody>']
     for x in mails:
-        acces = x["tests"][0]
+        lu = x["nom"] in ETAT.get("emails", {})
         o.append(f'<tr><td><a href="#{x["id"]}"><strong>{e(x["nom"])}</strong></a></td>'
-                 f'<td>{pastille(acces[3], "lecture OK" if acces[3] == "ok" else "à ouvrir")}</td>'
+                 f'<td>{pastille("ok" if lu else "ko", "lecture OK" if lu else "à ouvrir")}</td>'
                  f'<td>{CRIT_COMPTE(x["nom"], len(crit))}</td><td>{SOMBRE_COMPTE(x["nom"])}</td>'
                  f'<td class="num">{len(x["ecrans"])}</td></tr>')
     o.append('</tbody></table></div>')
     o.append('<h3>Les critères, par thème</h3><div class="tbl"><table class="compact"><thead><tr><th>Thème</th><th>Critères</th>'
-             '<th>Klaviyo Boutique C</th><th>Klaviyo Boutique F</th></tr></thead><tbody>')
+             + "".join(f'<th>{e(x["nom"])}</th>' for x in mails) + '</tr></thead><tbody>')
     for th, ids in themes.items():
         o.append(f'<tr><td><strong>{e(th)}</strong></td><td class="num">{len(ids)} ({ids[0]} à {ids[-1]})</td>'
-                 f'<td>{THEME_COMPTE("Klaviyo Boutique C", th)}</td><td>{pastille("info", "accès à ouvrir")}</td></tr>')
+                 + "".join(f'<td>{THEME_COMPTE(x["nom"], th) if x["nom"] in ETAT.get("emails", {}) else pastille("info", "accès à ouvrir")}</td>' for x in mails) + '</tr>')
     o.append('</tbody></table></div>')
     o.append('<h3>Reste à faire sur ce baromètre</h3><ul class="items">')
-    for t in ("Connecter le compte Klaviyo de Boutique F", "Choisir les 6 écrans de Boutique F",
-              "Relire les jugements IA sur les e-mails de Boutique C (consentement, contraste) et finaliser l'audit",
+    a_connecter = [x["nom"] for x in mails if x["nom"] not in ETAT.get("emails", {})]
+    for t in [f"Connecter le compte {n} et choisir ses écrans" for n in a_connecter] + [
+              "Relire les jugements IA sur les e-mails (consentement, contraste) et finaliser les audits",
               "Tester à la main les critères de parcours (clavier, lecteur d'écran, désinscription)",
-              "Captures en mode sombre dans Gmail, Outlook Windows et Apple Mail"):
+              "Captures en mode sombre dans Gmail, Outlook Windows et Apple Mail"]:
         o.append(f'<li><span class="mark todo">→</span><p>{e(t)}</p></li>')
-    o.append('</ul><p class="note">Liste complète des 41 critères et de leurs sources : onglet <a href="#referentiels">Référentiels</a>.</p></section>')
+    o.append('</ul><p class="note">Liste complète des critères et de leurs sources : onglet <a href="#referentiels">Référentiels</a>.</p></section>')
     return "\n".join(o)
 
 
-def remplir_tests(s: dict, reseau: dict, axe: dict | None = None) -> None:
+def remplir_tests(s: dict, reseau: dict, axe: dict | None = None, dates: dict | None = None) -> None:
     tests = []
     for t in s["tests"]:
         if t[3] == "RESEAU":
@@ -1924,14 +1847,14 @@ def remplir_tests(s: dict, reseau: dict, axe: dict | None = None) -> None:
                 txt = f'{b["conformes"]} conformes, {len(b["nc"])} non conformes ({", ".join(map(str, b["nc"])) or "aucune"})'
                 if b["non_testees"]:
                     txt += f' ; non testé : {", ".join(b["non_testees"])}'
-                tests.append((t[0], t[1], t[2], "attention" if b["nc"] else "ok", txt))
+                tests.append((t[0] or (dates or {}).get(s["reseau"], ""), t[1], t[2], "attention" if b["nc"] else "ok", txt))
             else:
                 tests.append((t[0], t[1], t[2], "afaire", "Passage en cours"))
         else:
             tests.append(t)
     if axe and s["nom"] in axe.get("sites", {}):
         a = axe["sites"][s["nom"]]
-        tests.append(("12/11", f'Accessibilité automatique, WCAG 2.1 A et AA ({a["pages_testees"]} pages)', "axe-core 4.10.2, navigateur",
+        tests.append((axe.get("date", ""), f'Accessibilité automatique, WCAG 2.1 A et AA ({a["pages_testees"]} pages)', "axe-core 4.10.2, navigateur",
                       "attention" if a["regles_en_violation"] else "ok",
                       f'{a["regles_en_violation"]} règles en violation, dont {a["regles_critiques"]} critiques ; {a["elements_en_defaut"]} éléments en défaut'))
     s["tests"] = tests
@@ -1943,36 +1866,36 @@ def main() -> None:
     axe = charger_axe()
     AXE.update(axe)
     ETAT.update(charger_etat())
+    COMPLEMENTS.clear()
+    COMPLEMENTS.update(charger_complements())
+    FAIT[:], A_FAIRE[:] = COMPLEMENTS.get("fait", []), COMPLEMENTS.get("a_faire", [])
+    LIENS[:] = [tuple(x) for x in COMPLEMENTS.get("liens", [])] + liens_locaux()
+    SERVICES[:] = construire_services()
     charger_annexes()
     exporter_scores([x["nom"] for x in SERVICES if x["cat"] == "E-commerce"])
     for s in SERVICES:
-        remplir_tests(s, reseau, axe)
+        remplir_tests(s, reseau, axe, dates)
     tete = page[:page.index('<div class="wrap">')]
     tete = re.sub(r"/\* Onglets \*/.*?(?=@media \(prefers-reduced-motion)", "", tete, flags=re.S)
     tete = tete.replace("@media (prefers-reduced-motion", CSS_ONGLETS.lstrip("\n") + "@media (prefers-reduced-motion", 1)
     aujourdhui = max(dates.values()) if dates else ""
+    j = COMPLEMENTS.get("jalons", [])
+    li = lambda c, t: f'      <li class="{c}">{e(t)}</li>\n' if c else f'      <li>{e(t)}</li>\n'
+    jalons = ('    <ul class="milestones" aria-label="Jalons">\n' + "".join(li(c, t) for c, t in j) + '    </ul>\n') if j else ""
     entete = f"""<div class="wrap">
   <header>
-    <div class="eyebrow">Formation Opquast · Expert qualité et conformité à l'ère de l'IA</div>
+    <div class="eyebrow">Baromètre qualité Opquast · {e(qui())}</div>
     <h1>Suivi des baromètres Opquast</h1>
-    <p class="lede">Deux baromètres qualité du parc Colorz, un pour les sites et un pour les e-mails : ce qui a été fait, testé et vérifié, et ce qui reste à faire. Un onglet par service. Dernier contrôle réseau : {e(aujourdhui)}.</p>
-    <ul class="milestones" aria-label="Jalons de la formation">
-      <li class="ok">J1 · 5 nov. · cadrage ✓</li>
-      <li class="ok">Intersession 1 · Git ✓</li>
-      <li class="cur">J2 · 12 nov. · audits</li>
-      <li>J3 · 19 nov. · baromètre</li>
-      <li>J4 · 26 nov. · plan qualité</li>
-      <li>Décembre · jury</li>
-    </ul>
-  </header>
+    <p class="lede">Deux baromètres qualité du parc, un pour les sites et un pour les e-mails : ce qui a été fait, testé et vérifié, et ce qui reste à faire. Un onglet par service. Dernier contrôle réseau : {e(aujourdhui)}.</p>
+{jalons}  </header>
 """
     sites = [x for x in SERVICES if x["cat"] == "E-commerce"]
     mails = [x for x in SERVICES if x["cat"] == "CRM"]
     nav = ['<nav class="tabs-nav" aria-label="Navigation du suivi">',
            '<ul class="tabs tabs-main" role="tablist">',
            '<li><a id="t-ensemble" role="tab" href="#ensemble">Vue d\'ensemble</a></li>',
-           '<li><a id="t-barometre-sites" role="tab" href="#barometre-sites" class="t-sites">Baromètre des sites<small>6</small></a></li>',
-           '<li><a id="t-barometre-emails" role="tab" href="#barometre-emails" class="t-mails">Baromètre des e-mails<small>2</small></a></li>',
+           f'<li><a id="t-barometre-sites" role="tab" href="#barometre-sites" class="t-sites">Baromètre des sites<small>{len(sites)}</small></a></li>',
+           f'<li><a id="t-barometre-emails" role="tab" href="#barometre-emails" class="t-mails">Baromètre des e-mails<small>{len(mails)}</small></a></li>',
            '<li><a id="t-etat" role="tab" href="#etat">État et recommandations</a></li>',
            '<li><a id="t-referentiels" role="tab" href="#referentiels">Référentiels<small>245 + 41</small></a></li></ul>',
            '<div class="tabs-sub"><span class="sub-label">Sites</span><ul class="tabs">']
@@ -1982,8 +1905,8 @@ def main() -> None:
     nav.append('</ul></div></nav>')
     corps = (entete + "\n".join(nav) + '\n<section class="tab" id="ensemble" role="tabpanel" aria-labelledby="t-ensemble">'
              + vue_ensemble(reseau, dates) + '</section>\n' + onglet_barometre_sites(reseau, dates) + "\n" + onglet_barometre_emails() + "\n" + "\n".join(onglet(s, reseau) for s in SERVICES) + "\n" + onglet_etat() + "\n" + onglet_referentiels()
-             + '\n  <footer>Sources : dépôt Git du projet, tests d\'accès, contrôles réseau (resultats/), test du MCP Opquast. '
-               'Les liens GitHub demandent d\'être connectée au compte itsmatlsr. Page générée par scripts/generer_suivi.py.</footer>\n</div>\n')
+             + '\n  <footer>Sources : dépôt Git du projet, referentiel/parc.json, tests d\'accès, contrôles réseau (resultats/), test du MCP Opquast. '
+               + (e(COMPLEMENTS["pied"]) + ' ' if COMPLEMENTS.get("pied") else '') + 'Page générée par scripts/generer_suivi.py.</footer>\n</div>\n')
     PAGE.write_text((tete + corps + JS_ONGLETS).replace(" — ", " - ").replace("—", "-"), encoding="utf-8")  # aucun tiret long dans le livrable, même cité
     print(f"{PAGE.name} : {len(SERVICES)} onglets de service")
 

@@ -28,11 +28,13 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
+import parc
+
 RACINE = Path(__file__).resolve().parent.parent
 VERSION = "0.1.0"
 UA = f"Opquast-barometre-Colorz/{VERSION} (i18n checker, lecture seule)"
 SERVICE = "https://validator.w3.org/i18n-checker/check?uri="
-HORS_SITE = re.compile(r"/account$")  # comptes clients redirigés vers shopify.com sur 3 sites
+COMPTE = re.compile(r"/account$")  # page du compte client, hors du site pour les sites compte_client_hors_site du parc
 
 
 def texte(fragment: str) -> str:
@@ -92,11 +94,12 @@ def main() -> None:
     ecrans = [e for e in csv.DictReader((RACINE / "scripts" / "ecrans_en_ligne.csv").open(encoding="utf-8"))
               if not args.service or e["service"] == args.service]
     services: dict[str, dict] = {}
+    hors_site = parc.hors_site()
     for i, e in enumerate(ecrans):
         fiche = {"gabarit": e["gabarit"], "url": e["url"], "controles": [], "remarques": []}
         services.setdefault(e["service"], {"pages": []})["pages"].append(fiche)
-        if HORS_SITE.search(urllib.parse.urlsplit(e["url"]).path) and e["service"] in ("Boutique C", "Boutique D", "Boutique E"):
-            fiche["non_teste"] = "compte client hébergé par Shopify, hors du site"
+        if COMPTE.search(urllib.parse.urlsplit(e["url"]).path) and e["service"] in hors_site:
+            fiche["non_teste"] = "compte client hébergé hors du site"
             continue
         if i:
             time.sleep(args.delai)

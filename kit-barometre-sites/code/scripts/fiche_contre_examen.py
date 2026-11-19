@@ -3,10 +3,10 @@
 
 Pour chaque règle et chaque site : verdict du robot d'eServices Manager (et son constat quand il est non conforme),
 constat objectif relevé dans le navigateur par scripts/contre_examen.mjs, proposition (confirmer, corriger,
-ou tester par un parcours réel), et la décision de Mattea, « à faire » tant qu'elle n'est pas prise.
+ou tester par un parcours réel), et la décision de la personne responsable (referentiel/parc.json), « à faire » tant qu'elle n'est pas prise.
 
 Décision : tranchée par Claude à partir des constats (contre-examen, parcours sans commande, captures de focus), marquée
-« à valider par Mattea » (décisions validées par Mattea le 12/11). Les règles qui demandent un compte, une commande ou un envoi restent « parcours de Mattea ».
+« à valider par » la personne responsable. Les règles qui demandent un compte, une commande ou un envoi restent « parcours de » cette personne.
 
 Entrées : resultats/etat-*/etat.json, resultats/esm-basics-*/preuves_nc.json, resultats/contre-examen-*/constats.json,
           resultats/parcours-*/parcours.json (si présent), referentiel/recommandations.csv.
@@ -19,6 +19,8 @@ import csv
 import json
 from datetime import date
 from pathlib import Path
+
+import parc
 
 RACINE = Path(__file__).resolve().parent.parent
 LIB = {"C": "conforme", "NC": "non conforme", "NA": "non applicable", "NT": "non testé", None: "non évalué"}
@@ -107,9 +109,9 @@ MATTEA = {18, 23, 59, 60, 62, 63, 66, 110, 173}
 
 
 def trancher(n: int, robot: str | None, prop: str, p: dict) -> tuple[str | None, str]:
-    """(statut décidé ou None, motif). None : la décision revient à Mattea (parcours avec compte, commande ou envoi)."""
+    """(statut décidé ou None, motif). None : la décision revient à la personne responsable (parcours avec compte, commande ou envoi)."""
     if n in MATTEA:
-        return None, "Parcours de Mattea : demande un compte, une commande ou un envoi réel."
+        return None, f"Parcours de {parc.responsable()} : demande un compte, une commande ou un envoi réel."
     pa = p.get("paiement", {}) if p else {}
     if n == 30 and "champ_email_ou_tel" in pa:
         return ("C", "Page de paiement atteinte sans compte : e-mail demandé, connexion facultative.") if not pa["connexion_obligatoire"] else ("NC", "Connexion exigée pour commander.")
@@ -121,7 +123,7 @@ def trancher(n: int, robot: str | None, prop: str, p: dict) -> tuple[str | None,
     f = p.get("formulaire", {}) if p else {}
     if n in (79, 80) and f.get("trouve"):
         if f.get("message_propre_au_site"):
-            return None, "Le site gère ses propres messages d'erreur (novalidate) : à voir en envoyant le formulaire, par Mattea."
+            return None, f"Le site gère ses propres messages d'erreur (novalidate) : à voir en envoyant le formulaire, par {parc.responsable()}."
         if not f["valide"]:
             return "C", ("Adresse « test@ » refusée avant envoi, champ fautif mis en avant par le navigateur." if n == 79 else "Le message explique la raison du refus (partie après @ manquante), dans la langue du navigateur.")
         return "NC", "Adresse invalide acceptée sans message."
@@ -131,7 +133,7 @@ def trancher(n: int, robot: str | None, prop: str, p: dict) -> tuple[str | None,
         if t:
             lourd = f" Parcours très long : {kp['liens_avant_le_bouton']} liens du menu à traverser avant le bouton, sans lien d'évitement (règle 164)." if kp.get("liens_avant_le_bouton", 0) > 60 else ""
             return "C", f"Accueil et fiche produit parcourus au clavier ; « Ajouter au panier » atteint en {t} tabulations" + (", ajout réussi." if kp.get("ajout_au_clavier") else " (ajout sans effet : choisir d'abord la taille).") + lourd
-        return None, "« Ajouter au panier » non atteint en 80 tabulations : à refaire à la main par Mattea (variante à choisir ou bouton hors de l'ordre de tabulation)."
+        return None, f"« Ajouter au panier » non atteint en 80 tabulations : à refaire à la main par {parc.responsable()} (variante à choisir ou bouton hors de l'ordre de tabulation)."
     if n == 165:
         if prop.startswith("Confirmer non conforme"):
             return "NC", "Éléments atteints au clavier sans aucun contour de focus."
@@ -171,6 +173,7 @@ def main() -> None:
     parcours = json.loads(fp[-1].read_text(encoding="utf-8")) if fp else {}
     recos = {x["code"]: x["recommandation"] for x in csv.DictReader((RACINE / "referentiel" / "recommandations.csv").open(encoding="utf-8"))}
     regles = [int(x["numero"]) for x in csv.DictReader((RACINE / "referentiel" / "repartition-regles.csv").open(encoding="utf-8")) if x["methode"] == "manuel"]
+    qui = parc.responsable()
     fiche = {}
     for nom, v in etat.items():
         lignes = []
@@ -185,7 +188,7 @@ def main() -> None:
             dec, motif = trancher(n, robot, prop, parcours.get(nom, {}))
             lignes.append({"regle": n, "titre": e.get("titre", ""), "robot": robot, "robot_constat": pr[:300],
                            "constat_navigateur": constat, "proposition": prop,
-                           "decision": "tranchée par Claude, validée par Mattea le 12/11" if dec else "parcours de Mattea",
+                           "decision": f"tranchée par Claude, à valider par {qui}" if dec else f"parcours de {qui}",
                            "decision_statut": dec, "decision_motif": motif,
                            "recommandation": ("Sur " + nom + " : " + recos[str(n)]) if dec == "NC" and str(n) in recos else ""})
         fiche[nom] = lignes

@@ -8,6 +8,7 @@ import etat_barometre as eb
 import fiche_contre_examen as fce
 import regles_une_source as rus
 import verifier_publication as vp
+from aide_parc import PARC_ORIGINE, poser_parc
 from conftest import ecrire_json, lire_json
 
 
@@ -72,8 +73,7 @@ def test_regles_une_source(racine, tmp_path, capsys):
 # --- replis sans eServices Manager ------------------------------------------
 
 def test_etat_sans_esm(racine, monkeypatch, capsys):
-    r = racine(eb)
-    monkeypatch.setattr(eb, "SITES", {"WEB-BOUTIQUEA": "Boutique A"})
+    r = poser_parc(racine, eb, donnees={"sites": [PARC_ORIGINE["sites"][0]]})
     eb.main()
     sortie = capsys.readouterr().out
     assert "Aucun export Opquast basics" in sortie and "Aucune fusion des scripts" in sortie
@@ -82,8 +82,7 @@ def test_etat_sans_esm(racine, monkeypatch, capsys):
 
 
 def test_etat_fichiers_partiels(racine, monkeypatch):
-    r = racine(eb)
-    monkeypatch.setattr(eb, "SITES", {"WEB-BOUTIQUEA": "Boutique A"})
+    r = poser_parc(racine, eb, donnees={"sites": [PARC_ORIGINE["sites"][0]]})
     (r / "resultats/esm-scripts-2026-11-12").mkdir(parents=True)
     (r / "resultats/esm-basics-2026-11-12").mkdir(parents=True)
     eb.main()

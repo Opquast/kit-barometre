@@ -12,6 +12,7 @@ import pytest
 import fusion_scripts as fs
 import synthese_axe as sa
 import verifier_page_a4 as a4
+from aide_parc import poser_parc
 from conftest import ecrire_json, lire_json
 
 
@@ -70,7 +71,7 @@ def test_charger(racine, monkeypatch):
 
 
 def test_fusion_main(racine, capsys):
-    r = racine(fs)
+    r = poser_parc(racine, fs)
     (r / "scripts" / "ecrans_en_ligne.csv").write_text(
         "service,gabarit,url\nBoutique A,Accueil,https://a.fr/\nBoutique A,Panier,https://a.fr/cart\n", encoding="utf-8")
     (r / "referentiel" / "repartition-regles.csv").write_text(

@@ -18,6 +18,7 @@
 // Sortie : resultats/contre-examen-AAAA-MM-JJ/constats.json
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { parNom } from './parc.mjs';
 
 const RACINE = new URL('..', import.meta.url).pathname;
 const pause = ms => new Promise(ok => setTimeout(ok, ms));
@@ -35,6 +36,7 @@ function lireCsv(chemin) {
 
 const ecrans = lireCsv(`${RACINE}scripts/ecrans_en_ligne.csv`);
 const services = [...new Set(ecrans.map(e => e.service))].filter(s => !seul || s === seul);
+const parc = parNom(); // prefixe_langue de chaque site (referentiel/parc.json)
 const date = new Date().toISOString().slice(0, 10);
 const dossier = `${RACINE}resultats/contre-examen-${date}`;
 mkdirSync(dossier, { recursive: true });
@@ -119,7 +121,7 @@ for (const nom of services) {
     }
 
     // Inscription : 17, 75, 76, 203
-    const repInsc = await ouvrir(origine + (nom === 'Boutique D' ? '/fr' : '') + '/account/register');
+    const repInsc = await ouvrir(origine + (parc[nom]?.prefixe_langue || '') + '/account/register');
     const urlInsc = page.url();
     if (new URL(urlInsc).host !== new URL(origine).host) {
       r.inscription = { hors_site: new URL(urlInsc).host, constat: 'Comptes clients hébergés par Shopify (connexion par code envoyé par e-mail, sans mot de passe).' };

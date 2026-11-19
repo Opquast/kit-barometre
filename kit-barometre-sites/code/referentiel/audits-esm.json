@@ -6,7 +6,8 @@
   "Boutique C": "",
   "Boutique D": "",
   "Boutique E": "",
-  "Boutique F": ""
+  "Boutique F": "",
+  "Ma boutique": ""
  },
  "basics": {
   "Boutique A": "",
@@ -14,7 +15,8 @@
   "Boutique C": "",
   "Boutique D": "",
   "Boutique E": "",
-  "Boutique F": ""
+  "Boutique F": "",
+  "Ma boutique": ""
  },
  "email": {
   "Klaviyo Boutique C": ""
@@ -22,11 +24,11 @@
  "noms": {
   "scripts": "{site}, scripts sans IA (réseau, page, i18n, REDbot)",
   "basics": "{site}, Opquast basics (robot d'eServices Manager)",
-  "email": "{site}, checklist e-mail Colorz (41 critères)",
-  "contre_examen": "{site}, contre-examen manuel et parcours (validé par Mattea)",
+  "email": "{site}, checklist e-mail (41 critères)",
+  "contre_examen": "{site}, contre-examen manuel et parcours (validé par la personne responsable)",
   "releve": "{site}, règles complémentaires (relevé navigateur, Claude, à valider)",
   "complement": "{site}, règles complémentaires 2 (deuxièmes sources, Claude, à valider)",
-  "complement3": "{site}, règles complémentaires 3 (recoupement du 13/11, Claude, à valider)"
+  "complement3": "{site}, règles complémentaires 3 (recoupement des sources, Claude, à valider)"
  },
  "contre_examen": {
   "Boutique A": "",
@@ -34,7 +36,8 @@
   "Boutique C": "",
   "Boutique D": "",
   "Boutique E": "",
-  "Boutique F": ""
+  "Boutique F": "",
+  "Ma boutique": ""
  },
  "releve": {
   "Boutique F": "",

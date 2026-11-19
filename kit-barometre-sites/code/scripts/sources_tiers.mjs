@@ -1,4 +1,4 @@
-// Outils tiers de confiance, installés avec l'accord de Mattea le 13/11 (versions épinglées, scripts d'installation non
+// Outils tiers de confiance, installés avec l'accord de la personne responsable (versions épinglées, scripts d'installation non
 // exécutés) : deuxièmes et troisièmes sources sur les règles Opquast. Lecture seule : aucune saisie, aucun envoi ; le
 // seul clic est le refus des cookies (choix le plus protecteur), avant l'impression.
 //

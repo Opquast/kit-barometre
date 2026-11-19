@@ -9,7 +9,7 @@ robot, les autres sont écartées. Le reste est fait de notre côté sans IA :
   - déterministe page   : scripts/controles_page.js dans le navigateur (lecture du code de la page)
                           et axe-core pour l'accessibilité ;
   - manuel              : les 20 règles du socle basics (29 moins 9 retirées le 12/11) qui ne se scriptent pas : verdict du robot puis
-                          contre-examen par Mattea (volet manuel demandé pour l'intersession du J2) ;
+                          contre-examen par la personne responsable (referentiel/parc.json) ;
   - écartée             : les autres règles qui demanderaient un jugement visuel ou un parcours réel
                           (commande, compte, formulaire, e-mail reçu) : hors périmètre pour l'instant
                           (décision du 12/11/2026).
@@ -22,6 +22,8 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
+
+import parc
 
 RACINE = Path(__file__).resolve().parent.parent
 
@@ -61,7 +63,7 @@ PAGE = {3, 13, 15, 27, 28, 46, 69, 92, 95, 97, 98, 102, 104, 105, 107, 116, 119,
 AXE = {182, 185, 244}
 PAGE = PAGE | AXE
 
-OUTILS = {"IA": "eServices Manager, robot sur Opquast basics", "manuel": "Mattea, contre-examen du verdict du robot (Opquast basics)", "réseau": "scripts/controles_reseau.py",
+OUTILS = {"IA": "eServices Manager, robot sur Opquast basics", "manuel": "{responsable}, contre-examen du verdict du robot (Opquast basics)", "réseau": "scripts/controles_reseau.py",
           "page": "scripts/controles_page.js et axe-core", "écartée": "hors périmètre pour l'instant",
           "relevé": "scripts/releve_regles.mjs et regles_releve.py (Claude, à valider)"}
 
@@ -79,20 +81,21 @@ def main() -> None:
     verifier(not (RESEAU & PAGE), f"règles à la fois réseau et page : {RESEAU & PAGE}")
     BASICS = {r["number"] for r in regles if "Basics" in " ".join(r["metadata"].get("Tags", []))}
     verifier(len(BASICS) == 65, f"{len(BASICS)} règles Basics au lieu de 65")
-    # Retirées le 12/11 (décision de Mattea) : impossibles à tester sans créer de compte client, passer une commande payée
+    # Retirées le 12/11 (décision de la personne responsable) : impossibles à tester sans créer de compte client, passer une commande payée
     # ou envoyer un vrai message ou une vraie inscription sur les sites des clients en production.
     NON_TESTABLES = {18, 23, 59, 60, 62, 63, 66, 110, 173}
     # Tranchées par le relevé navigateur du 12/11 (scripts/releve_regles.mjs puis regles_releve.py), sur au moins un site
     RELEVE = set(json.loads((RACINE / "resultats" / "releve-2026-11-12" / "decisions.json").read_text(encoding="utf-8")) and
                  {int(k) for s_ in json.loads((RACINE / "resultats" / "releve-2026-11-12" / "decisions.json").read_text(encoding="utf-8")).values()
                   for k, v in s_.items() if v[0] in ("C", "NC", "NA")}) | {33}  # 33 : parcours panier (scripts/parcours.mjs)
+    qui = parc.responsable()
     lignes, compte = [], {}
     for r in regles:
         n = r["number"]
         if n in RELEVE and n not in BASICS and n not in NON_TESTABLES:
             # Cohérence (12/11) : une règle tranchée par le relevé est mesurée, même si elle était prévue pour l'IA
-            m, raison = "relevé", ("Tranchée par le parcours panier (case précochée) et le relevé navigateur, par Claude, à valider par Mattea." if n == 33 else
-                                   "Tranchée par le relevé navigateur (mesure dans la page ou lecture des pages légales), par Claude, à valider par Mattea.")
+            m, raison = "relevé", (f"Tranchée par le parcours panier (case précochée) et le relevé navigateur, par Claude, à valider par {qui}." if n == 33 else
+                                   f"Tranchée par le relevé navigateur (mesure dans la page ou lecture des pages légales), par Claude, à valider par {qui}.")
         elif n in IA and n in BASICS:
             m, raison = "IA", IA[n] + " Évaluée par le robot d'eServices Manager dans l'audit Opquast basics."
         elif n in IA:
@@ -105,11 +108,11 @@ def main() -> None:
         elif n in NON_TESTABLES:
             m, raison = "écartée", "Retirée le 12/11 : non testable sans compte client, commande payée ou envoi réel sur un site client en production."
         elif n in BASICS:
-            m, raison = "manuel", "Socle Opquast basics, non scriptable : verdict du robot d'eServices Manager, contre-examiné par Mattea."
+            m, raison = "manuel", f"Socle Opquast basics, non scriptable : verdict du robot d'eServices Manager, contre-examiné par {qui}."
         else:
             m, raison = "écartée", "Écartée pour l'instant : demanderait un jugement visuel ou un parcours réel (commande, compte, formulaire, e-mail reçu)."
         compte[m] = compte.get(m, 0) + 1
-        lignes.append([n, ", ".join(r["metadata"].get("Thématiques", [])), r["description"]["fr"], m, OUTILS[m], raison])
+        lignes.append([n, ", ".join(r["metadata"].get("Thématiques", [])), r["description"]["fr"], m, OUTILS[m].format(responsable=qui), raison])
     with (RACINE / "referentiel" / "repartition-regles.csv").open("w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
         w.writerow(["numero", "theme", "regle", "methode", "outil", "raison"])

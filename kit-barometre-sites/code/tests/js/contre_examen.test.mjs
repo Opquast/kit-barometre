@@ -1,6 +1,8 @@
 // Tests de scripts/contre_examen.mjs : Playwright simulé (pages jsdom), sortie dans un dossier temporaire.
 import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { lancer, executerScenario, aujourdhui } from './aide_parcours.mjs';
 
 const CSV = `service,gabarit,url
@@ -68,9 +70,16 @@ const SITE = {
   clic: d => (/fermer/.test(d.name.source) ? Promise.reject(new Error('masqué')) : undefined),
 };
 
+// parc de test (referentiel/parc.json remplacé par BAROMETRE_PARC) : seule Boutique D est auditée sous /fr
+function parcDeTest() {
+  const f = join(process.env.AIDE_TMP, 'parc.json');
+  writeFileSync(f, JSON.stringify({ responsable: 'Mattea', sites: [{ nom: 'Boutique D', prefixe_langue: '/fr' }, { nom: 'Boutique A', prefixe_langue: '' }] }));
+  process.env.BAROMETRE_PARC = f;
+}
+
 const SCENARIOS = {
-  complet: () => ({ csv: CSV, args: [], site: SITE }),
-  service: () => ({ csv: CSV, args: ['--service', 'Boutique G'], site: SITE }),
+  complet: () => { parcDeTest(); return { csv: CSV, args: [], site: SITE }; },
+  service: () => { parcDeTest(); return { csv: CSV, args: ['--service', 'Boutique G'], site: SITE }; },
 };
 
 if (process.env.AIDE_SCENARIO) {

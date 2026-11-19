@@ -11,6 +11,7 @@ from urllib.error import HTTPError, URLError
 import pytest
 
 import sources_shopify as ss
+from aide_parc import PARC_ORIGINE, poser_parc
 from conftest import FausseReponse, ecrire_json, erreur_http, lire_json
 
 
@@ -140,3 +141,18 @@ def test_sources_shopify_defi(racine, monkeypatch, tmp_path):
     ss.main()
     res = lire_json(r / "resultats" / f"sources-{date.today():%Y-%m-%d}" / "shopify.json")
     assert "_limite" in res["Ma boutique"]
+
+
+def test_sources_shopify_autre_plateforme(racine, monkeypatch, tmp_path, capsys):
+    """Un site du parc sur une autre plateforme n'est pas interrogé ; un site absent du parc l'est (Shopify par défaut)."""
+    donnees = {"sites": [dict(PARC_ORIGINE["sites"][0], plateforme="wordpress")]}
+    r = poser_parc(racine, ss, donnees=donnees)
+    (r / "scripts/ecrans_en_ligne.csv").write_text(
+        "service,gabarit,url\nBoutique A,Accueil,https://a.fr/\nAutre,Accueil,https://z.fr/\n", encoding="utf-8")
+    vus = []
+    monkeypatch.setattr(ss, "get", lambda url: vus.append(url) or (403, url, ""))
+    monkeypatch.setattr(sys, "argv", ["ss", str(tmp_path / "t")])
+    ss.main()
+    res = lire_json(r / "resultats" / f"sources-{date.today():%Y-%m-%d}" / "shopify.json")
+    assert list(res) == ["Autre"] and vus == ["https://z.fr/meta.json"]
+    assert "Boutique A : plateforme wordpress, sources Shopify sans objet" in capsys.readouterr().out

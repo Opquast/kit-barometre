@@ -5,28 +5,42 @@ Usage : python3 scripts/generer_schema.py
 """
 from __future__ import annotations
 
+import csv
 import html
 import json
 from pathlib import Path
+from urllib.parse import urlsplit
+
+import parc
 
 RACINE = Path(__file__).resolve().parent.parent
 PAGE = RACINE / "schema-parc.html"
 
-SITES = [
-    ("Boutique A", "boutique-a.example", "confitures, biscuits"),
-    ("Boutique B", "boutique-b.example", "mode homme et femme"),
-    ("Boutique C", "boutique-c.example", "soins capillaires"),
-    ("Boutique D", "boutique-d.example/fr", "mode homme"),
-    ("Boutique E", "boutique-e.example", "arts de la table"),
-    ("Boutique F", "boutique-f.example", "tee-shirts, 4 langues"),
-]
-KLAVIYO = [("Boutique C", "lecture seule", "ok"), ("Boutique F", "accès à ouvrir", "warn")]
 OUTILS = [
-    ("Script de contrôles réseau", "scripts/controles_reseau.py", "19 règles · déterministe"),
-    ("Claude Code + MCP Opquast", "Claude Opus 5.5 · navigateur intégré", "audit assisté par IA"),
+    ("Script de contrôles réseau", "scripts/controles_reseau.py", "règles réseau · déterministe"),
+    ("Claude Code + MCP Opquast", "navigateur intégré", "audit assisté par IA"),
     ("eServices Manager", "esm.opquast.com · robot Opquast", "inventaire, robot, baromètre"),
-    ("Dépôt Git privé", "github.com/itsmatlsr/opquast-barometre", "versions et preuves"),
+    ("Dépôt Git", "dépôt du kit", "versions et preuves"),
 ]
+
+
+def sites() -> list[tuple[str, str, str, int]]:
+    """(nom, adresse de l'accueil, description, nombre d'écrans) de chaque site du parc, adresse tirée du CSV des écrans."""
+    ecrans = list(csv.DictReader((RACINE / "scripts" / "ecrans_en_ligne.csv").open(encoding="utf-8")))
+    out = []
+    for s in parc.sites():
+        ec = [x for x in ecrans if x["service"] == s["nom"]]
+        accueil = next((x["url"] for x in ec if x["gabarit"].startswith("Accueil")), ec[0]["url"] if ec else "")
+        u = urlsplit(accueil)
+        out.append((s["nom"], (u.netloc + u.path).rstrip("/"), s.get("description", ""), len(ec)))
+    return out
+
+
+def comptes_email() -> list[tuple[str, str, str]]:
+    """(compte, accès, classe) : « lu » si le dernier état consolidé contient ses e-mails, sinon « à connecter »."""
+    etats = sorted((RACINE / "resultats").glob("etat-*/etat.json"))
+    lus = json.loads(etats[-1].read_text(encoding="utf-8")).get("emails", {}) if etats else {}
+    return [(c, "lecture seule", "ok") if c in lus else (c, "accès à ouvrir", "warn") for c in parc.comptes_email().values()]
 
 
 def e(t: str) -> str:
@@ -68,32 +82,41 @@ def main() -> None:
     page = PAGE.read_text(encoding="utf-8")
     tete = page[:page.index('<div class="wrap">')]
     b = bilans()
-    svg = ['<svg viewBox="0 0 1160 640" role="img" aria-labelledby="svgt svgd" xmlns="http://www.w3.org/2000/svg">',
-           '<title id="svgt">Schéma du parc Opquast de Mattea</title>',
-           '<desc id="svgd">À gauche, en ligne : six sites e-commerce clients sur Shopify et deux comptes Klaviyo. '
+    qui = parc.responsable()
+    ss, emails = sites(), comptes_email()
+    nb_ecrans = {n for *_, n in ss}
+    gabarits = f"{nb_ecrans.pop()} gabarits chacun" if len(nb_ecrans) == 1 else "gabarits du CSV des écrans"
+    rangs = max(1, (len(ss) + 1) // 2)
+    h_sites = 20 + rangs * 88
+    y_crm = 92 + h_sites + 12
+    h_crm = (32 + ((len(emails) + 1) // 2) * 88) if emails else 0
+    h = max(608, y_crm + h_crm + 40 - 16)
+    svg = [f'<svg viewBox="0 0 1160 {h + 32}" role="img" aria-labelledby="svgt svgd" xmlns="http://www.w3.org/2000/svg">',
+           f'<title id="svgt">Schéma du parc Opquast de {e(qui)}</title>',
+           f'<desc id="svgd">À gauche, en ligne : {len(ss)} site(s) du parc et {len(emails)} compte(s) e-mail. '
            'À droite, les outils de mesure : script de contrôles réseau, Claude Code avec le MCP Opquast, eServices Manager et le dépôt Git.</desc>',
            '<defs><marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="tip"/></marker></defs>',
-           '<rect x="16" y="16" width="760" height="608" rx="16" class="zone-web"/>',
-           '<rect x="800" y="16" width="344" height="608" rx="16" class="zone-mac"/>',
-           '<text x="36" y="50" class="zone-title">En ligne, chez les clients</text>',
+           f'<rect x="16" y="16" width="760" height="{h}" rx="16" class="zone-web"/>',
+           f'<rect x="800" y="16" width="344" height="{h}" rx="16" class="zone-mac"/>',
+           '<text x="36" y="50" class="zone-title">En ligne</text>',
            '<text x="36" y="70" class="zone-sub">sites en production · audit en lecture seule, aucune commande</text>',
            '<text x="820" y="50" class="zone-title">Outils de mesure</text>',
            '<text x="820" y="70" class="zone-sub">trois couches : automatique, IA, humaine</text>',
-           '<rect x="30" y="92" width="732" height="300" rx="11" class="group group-shop"/>',
-           '<text x="44" y="112" class="glabel">Sites e-commerce clients · Shopify · 8 gabarits chacun</text>']
-    for i, (nom, url, secteur) in enumerate(SITES):
+           f'<rect x="30" y="92" width="732" height="{h_sites}" rx="11" class="group group-shop"/>',
+           f'<text x="44" y="112" class="glabel">Sites du parc · {e(gabarits)}</text>']
+    for i, (nom, url, desc, _) in enumerate(ss):
         x, y = 42 + (i % 2) * 360, 122 + (i // 2) * 88
         if nom in b:
             chips = [(f"{b[nom]} non conf. réseau", 128, "warn" if b[nom] else "ok")]
         else:
             chips = [("réseau en cours", 108, "dep")]
-        svg.append(card(x, y, 348, 80, "shop", nom, url, secteur, chips))
-    svg += ['<rect x="30" y="404" width="732" height="122" rx="11" class="group group-crm"/>',
-            '<text x="44" y="424" class="glabel">Klaviyo · comptes clients · e-mails et formulaires</text>']
-    for i, (nom, acces, cls) in enumerate(KLAVIYO):
-        svg.append(card(42 + i * 360, 434, 348, 80, "crm", f"Klaviyo {nom}", "6 écrans · socle + Newsletter", "",
-                        [(acces, 104 if cls == "warn" else 92, cls if cls == "warn" else "dep")]))
-    svg.append('<text x="44" y="560" class="cnote">Boutique C et Boutique F : site et CRM du même client, audités tous les deux.</text>')
+        svg.append(card(x, y, 348, 80, "shop", nom, url, desc, chips))
+    if emails:
+        svg += [f'<rect x="30" y="{y_crm}" width="732" height="{h_crm}" rx="11" class="group group-crm"/>',
+                f'<text x="44" y="{y_crm + 20}" class="glabel">Comptes e-mail · e-mails et formulaires</text>']
+        for i, (nom, acces, cls) in enumerate(emails):
+            svg.append(card(42 + (i % 2) * 360, y_crm + 30 + (i // 2) * 88, 348, 80, "crm", nom, "socle + Newsletter", "",
+                            [(acces, 104 if cls == "warn" else 92, cls if cls == "warn" else "dep")]))
     for i, (nom, chemin, note) in enumerate(OUTILS):
         svg.append(card(816, 92 + i * 128, 312, 112, "local" if i < 3 else "svc", nom, chemin, note, []))
     svg += ['<path d="M816 148 H766" class="link" marker-end="url(#tip)"/>',
@@ -102,25 +125,29 @@ def main() -> None:
             '</svg>']
 
     lignes = []
-    for nom, url, secteur in SITES:
+    for nom, url, desc, n in ss:
         etat = (f'<span class="pill pill-{"warn" if b[nom] else "ok"}">{b[nom]} non conforme(s) en réseau</span>' if nom in b
                 else '<span class="pill pill-warn">Contrôles réseau en cours</span>')
-        lignes.append(f'<tr><td class="id id-shop">E-commerce</td><td><strong>{e(nom)}</strong><span class="cat">{e(secteur)}</span></td>'
-                      f'<td class="mono">{e(url)}</td><td>8</td><td>{etat}</td></tr>')
-    for nom, acces, cls in KLAVIYO:
+        lignes.append(f'<tr><td class="id id-shop">Site</td><td><strong>{e(nom)}</strong><span class="cat">{e(desc)}</span></td>'
+                      f'<td class="mono">{e(url)}</td><td>{n}</td><td>{etat}</td></tr>')
+    for nom, acces, cls in emails:
         etat = f'<span class="pill pill-{"ok" if cls == "ok" else "warn"}">{"Lecture OK" if cls == "ok" else "Accès à ouvrir"}</span>'
-        lignes.append(f'<tr><td class="id id-crm">CRM</td><td><strong>Klaviyo {e(nom)}</strong><span class="cat">e-mails et formulaires</span></td>'
-                      f'<td class="mono">connecteur Klaviyo ({e(acces)})</td><td>6</td><td>{etat}</td></tr>')
+        lignes.append(f'<tr><td class="id id-crm">E-mail</td><td><strong>{e(nom)}</strong><span class="cat">e-mails et formulaires</span></td>'
+                      f'<td class="mono">compte e-mail ({e(acces)})</td><td>-</td><td>{etat}</td></tr>')
+    a_ouvrir = [nom for nom, _, cls in emails if cls == "warn"]
+    note_email = (f'\n      <li><strong>Comptes e-mail à connecter</strong>{e(", ".join(a_ouvrir))} : e-mails non lus tant que l\'accès n\'est pas ouvert.</li>'
+                  if a_ouvrir else "")
+    total = len(ss) + len(emails)
 
     corps = f'''<div class="wrap">
   <header>
-    <div class="eyebrow-h">Formation Opquast · Expert qualité et conformité à l'ère de l'IA</div>
-    <h1>Parc Opquast de Mattea</h1>
-    <p class="lede">Les 8 services du périmètre de la note de cadrage (version 4 du 12 novembre 2026) : six sites e-commerce clients réalisés par Colorz sur Shopify et deux comptes Klaviyo, avec les outils qui les mesurent.</p>
+    <div class="eyebrow-h">Baromètre qualité Opquast</div>
+    <h1>Parc Opquast de {e(qui)}</h1>
+    <p class="lede">Les {total} services du parc (referentiel/parc.json) : {len(ss)} site(s) et {len(emails)} compte(s) e-mail, avec les outils qui les mesurent.</p>
     <ul class="counts">
-      <li><span class="dot" style="background:var(--shop)"></span><b>6</b>sites e-commerce clients</li>
-      <li><span class="dot" style="background:var(--crm)"></span><b>2</b>comptes Klaviyo</li>
-      <li><span class="dot" style="background:var(--local)"></span><b>60</b>écrans à auditer</li>
+      <li><span class="dot" style="background:var(--shop)"></span><b>{len(ss)}</b>sites du parc</li>
+      <li><span class="dot" style="background:var(--crm)"></span><b>{len(emails)}</b>comptes e-mail</li>
+      <li><span class="dot" style="background:var(--local)"></span><b>{sum(n for *_, n in ss)}</b>écrans de sites à auditer</li>
     </ul>
   </header>
 
@@ -131,7 +158,7 @@ def main() -> None:
   </figure>
 
   <section>
-    <h2>Les 8 services</h2>
+    <h2>Les {total} services</h2>
     <div class="tbl"><table>
       <thead><tr><th>Catégorie</th><th>Service</th><th>Adresse ou accès</th><th>Écrans</th><th>État</th></tr></thead>
       <tbody>
@@ -143,14 +170,13 @@ def main() -> None:
   <section>
     <h2>À savoir</h2>
     <ul class="notes">
-      <li><strong>Lecture seule</strong>Aucune commande passée sur les sites, rien n'est modifié dans Klaviyo, aucune donnée client dans les rapports.</li>
-      <li><strong>Pages bloquées par Shopify</strong>Le script s'arrête au code 429 et note la page « non testée » ; elle est vérifiée dans le navigateur.</li>
-      <li><strong>Mêmes gabarits partout</strong>Accueil, collection, produit, panier, recherche, compte, page de contenu, page propre au site : les sites se comparent directement.</li>
-      <li><strong>Klaviyo Boutique F</strong>Le connecteur actuel ne voit que le compte des Secrets de Boutique C : accès à ouvrir.</li>
+      <li><strong>Lecture seule</strong>Aucune commande passée sur les sites, rien n'est modifié dans les comptes e-mail, aucune donnée client dans les rapports.</li>
+      <li><strong>Pages bloquées</strong>Le script s'arrête au code 429 et note la page « non testée » ; elle est vérifiée dans le navigateur.</li>
+      <li><strong>Mêmes gabarits partout</strong>Les sites sont mesurés sur les mêmes gabarits (scripts/ecrans_en_ligne.csv) : ils se comparent directement.</li>{note_email}
     </ul>
   </section>
 
-  <footer>Sources : note de cadrage v4, tests du 05/11 et du 12/11/2026, résultats des contrôles réseau · page générée par scripts/generer_schema.py</footer>
+  <footer>Sources : referentiel/parc.json, scripts/ecrans_en_ligne.csv, résultats des contrôles réseau · page générée par scripts/generer_schema.py</footer>
 </div>
 '''
     PAGE.write_text(tete + corps, encoding="utf-8")
