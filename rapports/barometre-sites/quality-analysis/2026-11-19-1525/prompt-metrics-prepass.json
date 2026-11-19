@@ -1,0 +1,198 @@
+{
+  "scanner": "prompt-craft-prepass",
+  "script": "prepass-prompt-metrics.py",
+  "version": "1.0.0",
+  "skill_path": "/Users/mickaelh/Documents/Opquast/Test Formation/kit-barometre-sites/code/.claude/skills/barometre-sites",
+  "timestamp": "2026-11-19T11:25:39.378289+00:00",
+  "status": "info",
+  "is_memory_agent": false,
+  "skill_md_summary": {
+    "line_count": 115,
+    "token_estimate": 2913,
+    "overview_lines": 0,
+    "table_count": 1,
+    "table_lines": 8,
+    "fenced_block_count": 3,
+    "fenced_block_lines": 3,
+    "section_count": 6
+  },
+  "prompt_health": {
+    "total_prompts": 2,
+    "prompts_with_config_header": 0,
+    "prompts_with_progression": 0
+  },
+  "aggregate": {
+    "total_files_scanned": 3,
+    "total_token_estimate": 5890,
+    "total_waste_patterns": 0,
+    "total_back_references": 0,
+    "total_suggestive_loading": 0,
+    "total_wall_of_text": 0
+  },
+  "resource_sizes": {},
+  "files": [
+    {
+      "file": "SKILL.md",
+      "line_count": 115,
+      "token_estimate": 2913,
+      "sections": [
+        {
+          "level": 2,
+          "title": "R\u00e8gles \u00e0 ne jamais enfreindre",
+          "line": 12
+        },
+        {
+          "level": 2,
+          "title": "Pr\u00e9requis et installation (sur n'importe quel ordinateur)",
+          "line": 22
+        },
+        {
+          "level": 2,
+          "title": "D\u00e9roul\u00e9",
+          "line": 46
+        },
+        {
+          "level": 2,
+          "title": "Trancher les \u00e9carts",
+          "line": 81
+        },
+        {
+          "level": 2,
+          "title": "Publication",
+          "line": 98
+        },
+        {
+          "level": 2,
+          "title": "Fichiers utiles",
+          "line": 110
+        }
+      ],
+      "table_count": 1,
+      "table_lines": 8,
+      "fenced_block_count": 3,
+      "fenced_block_lines": 3,
+      "waste_patterns": [],
+      "back_references": [],
+      "suggestive_loading": [],
+      "has_config_header": false,
+      "has_progression": false,
+      "wall_of_text": [],
+      "overview_lines": 0,
+      "is_skill_md": true
+    },
+    {
+      "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md",
+      "line_count": 99,
+      "token_estimate": 2197,
+      "sections": [
+        {
+          "level": 2,
+          "title": "Ce qu'est le barom\u00e8tre",
+          "line": 5
+        },
+        {
+          "level": 2,
+          "title": "R\u00e8gles absolues (\u00e0 respecter quel que soit l'assistant)",
+          "line": 11
+        },
+        {
+          "level": 2,
+          "title": "\u00c9tape 1 : r\u00e9cup\u00e9rer le code",
+          "line": 19
+        },
+        {
+          "level": 2,
+          "title": "\u00c9tape 2 : pr\u00e9requis, v\u00e9rifi\u00e9s puis install\u00e9s avec accord",
+          "line": 23
+        },
+        {
+          "level": 2,
+          "title": "\u00c9tape 3 : adapter le barom\u00e8tre aux sites de la personne",
+          "line": 39
+        },
+        {
+          "level": 2,
+          "title": "\u00c9tape 4 : installer la skill dans votre outil",
+          "line": 53
+        },
+        {
+          "level": 2,
+          "title": "\u00c9tape 5 : lancer le passage, de pr\u00e9f\u00e9rence la nuit",
+          "line": 76
+        },
+        {
+          "level": 2,
+          "title": "\u00c9tape 6 : trancher, v\u00e9rifier, livrer",
+          "line": 96
+        }
+      ],
+      "table_count": 3,
+      "table_lines": 22,
+      "fenced_block_count": 4,
+      "fenced_block_lines": 4,
+      "waste_patterns": [],
+      "back_references": [],
+      "suggestive_loading": [],
+      "has_config_header": false,
+      "has_progression": false,
+      "wall_of_text": [],
+      "is_skill_md": false,
+      "prompt_frontmatter": {
+        "has_frontmatter": false,
+        "fields": {},
+        "missing_fields": [
+          "name",
+          "description",
+          "menu-code"
+        ]
+      }
+    },
+    {
+      "file": "references/lectures-independantes.md",
+      "line_count": 29,
+      "token_estimate": 780,
+      "sections": [
+        {
+          "level": 2,
+          "title": "Consignes communes (\u00e0 copier dans chaque brief)",
+          "line": 5
+        },
+        {
+          "level": 2,
+          "title": "1. Textes l\u00e9gaux (`lecture_ia_lot1.json`, `lecture_ia_lot2.json`)",
+          "line": 13
+        },
+        {
+          "level": 2,
+          "title": "2. Captures (`lecture_visuelle_lot1.json`, `lecture_visuelle_lot2.json`)",
+          "line": 17
+        },
+        {
+          "level": 2,
+          "title": "3. DOM, captures et paiement (`lecture_dom_lot1.json`, `lecture_dom_lot2.json`)",
+          "line": 21
+        }
+      ],
+      "table_count": 0,
+      "table_lines": 0,
+      "fenced_block_count": 0,
+      "fenced_block_lines": 0,
+      "waste_patterns": [],
+      "back_references": [],
+      "suggestive_loading": [],
+      "has_config_header": false,
+      "has_progression": false,
+      "wall_of_text": [],
+      "is_skill_md": false,
+      "prompt_frontmatter": {
+        "has_frontmatter": false,
+        "fields": {},
+        "missing_fields": [
+          "name",
+          "description",
+          "menu-code"
+        ]
+      }
+    }
+  ]
+}

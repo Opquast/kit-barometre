@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BMad Method · Quality Analysis: barometre-sites</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #21262d; --border: #30363d;
+  --text: #e6edf3; --text-muted: #8b949e; --text-dim: #6e7681;
+  --critical: #f85149; --high: #f0883e; --medium: #d29922; --low: #58a6ff;
+  --strength: #3fb950; --suggestion: #a371f7;
+  --accent: #58a6ff; --accent-hover: #79c0ff;
+  --brand: #a371f7;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff; --surface: #f6f8fa; --surface2: #eaeef2; --border: #d0d7de;
+    --text: #1f2328; --text-muted: #656d76; --text-dim: #8c959f;
+    --critical: #cf222e; --high: #bc4c00; --medium: #9a6700; --low: #0969da;
+    --strength: #1a7f37; --suggestion: #8250df;
+    --accent: #0969da; --accent-hover: #0550ae;
+    --brand: #8250df;
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.5; padding: 2rem; max-width: 900px; margin: 0 auto; }
+.brand { color: var(--brand); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.25rem; }
+h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+.subtitle { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+.subtitle a { color: var(--accent); text-decoration: none; }
+.subtitle a:hover { text-decoration: underline; }
+.portrait { background: var(--surface); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1.25rem; margin-bottom: 1.5rem; }
+.portrait-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+.portrait-icon { font-size: 2rem; }
+.portrait-name { font-size: 1.25rem; font-weight: 700; }
+.portrait-title { font-size: 0.9rem; color: var(--text-muted); }
+.portrait-desc { font-size: 0.95rem; color: var(--text-muted); line-height: 1.6; font-style: italic; }
+.grade { font-size: 2.5rem; font-weight: 700; margin: 0.5rem 0; }
+.grade-Excellent { color: var(--strength); }
+.grade-Good { color: var(--low); }
+.grade-Fair { color: var(--medium); }
+.grade-Poor { color: var(--critical); }
+.narrative { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.6; }
+.badge { display: inline-flex; align-items: center; padding: 0.15rem 0.5rem; border-radius: 2rem; font-size: 0.75rem; font-weight: 600; }
+.badge-critical { background: color-mix(in srgb, var(--critical) 20%, transparent); color: var(--critical); }
+.badge-high { background: color-mix(in srgb, var(--high) 20%, transparent); color: var(--high); }
+.badge-medium { background: color-mix(in srgb, var(--medium) 20%, transparent); color: var(--medium); }
+.badge-low { background: color-mix(in srgb, var(--low) 20%, transparent); color: var(--low); }
+.badge-strength { background: color-mix(in srgb, var(--strength) 20%, transparent); color: var(--strength); }
+.badge-good { background: color-mix(in srgb, var(--strength) 15%, transparent); color: var(--strength); }
+.badge-attention { background: color-mix(in srgb, var(--medium) 15%, transparent); color: var(--medium); }
+.section { border: 1px solid var(--border); border-radius: 0.5rem; margin: 0.75rem 0; overflow: hidden; }
+.section-header { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--surface); cursor: pointer; user-select: none; }
+.section-header:hover { background: var(--surface2); }
+.section-header .arrow { font-size: 0.7rem; transition: transform 0.15s; color: var(--text-muted); width: 1rem; }
+.section-header.open .arrow { transform: rotate(90deg); }
+.section-header .label { font-weight: 600; flex: 1; }
+.section-header .actions { display: flex; gap: 0.5rem; }
+.section-body { display: none; }
+.section-body.open { display: block; }
+.cap-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 1rem; border-top: 1px solid var(--border); }
+.cap-row:hover { background: var(--surface); }
+.cap-name { font-weight: 600; font-size: 0.9rem; flex: 1; }
+.cap-file { font-family: var(--mono); font-size: 0.75rem; color: var(--text-dim); }
+.cap-findings { display: none; padding: 0.5rem 1rem 0.5rem 2rem; border-top: 1px solid var(--border); background: var(--bg); }
+.cap-findings.open { display: block; }
+.cap-finding { font-size: 0.85rem; padding: 0.25rem 0; color: var(--text-muted); }
+.item { padding: 0.75rem 1rem; border-top: 1px solid var(--border); }
+.item:hover { background: var(--surface); }
+.item-title { font-weight: 600; font-size: 0.9rem; }
+.item-file { font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted); }
+.item-desc { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem; }
+.item-action { font-size: 0.85rem; margin-top: 0.25rem; }
+.item-action strong { color: var(--strength); }
+.opp { padding: 1rem; border-top: 1px solid var(--border); }
+.opp-header { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.opp-name { font-weight: 600; font-size: 1rem; flex: 1; }
+.opp-count { font-size: 0.8rem; color: var(--text-muted); }
+.opp-desc { font-size: 0.9rem; color: var(--text-muted); margin: 0.5rem 0; }
+.opp-impact { font-size: 0.85rem; color: var(--text-dim); font-style: italic; }
+.opp-findings { margin-top: 0.75rem; padding-left: 1rem; border-left: 2px solid var(--border); display: none; }
+.opp-findings.open { display: block; }
+.opp-finding { font-size: 0.85rem; padding: 0.25rem 0; color: var(--text-muted); }
+.opp-finding .source { font-size: 0.75rem; color: var(--text-dim); }
+.btn { background: none; border: 1px solid var(--border); border-radius: 0.25rem; padding: 0.3rem 0.7rem; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; transition: all 0.15s; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.btn-primary:hover { background: var(--accent-hover); }
+.strength-item { padding: 0.5rem 1rem; border-top: 1px solid var(--border); }
+.strength-item .title { font-weight: 600; font-size: 0.9rem; color: var(--strength); }
+.strength-item .detail { font-size: 0.85rem; color: var(--text-muted); }
+.analysis-section { padding: 0.75rem 1rem; border-top: 1px solid var(--border); }
+.analysis-section h4 { font-size: 0.9rem; margin-bottom: 0.25rem; }
+.analysis-section p { font-size: 0.85rem; color: var(--text-muted); }
+.analysis-finding { font-size: 0.85rem; padding: 0.25rem 0 0.25rem 1rem; border-left: 2px solid var(--border); margin: 0.25rem 0; color: var(--text-muted); }
+.recs { padding: 0.75rem 1rem; border-top: 1px solid var(--border); }
+.rec { padding: 0.3rem 0; font-size: 0.9rem; }
+.rec-rank { font-weight: 700; color: var(--accent); margin-right: 0.5rem; }
+.rec-resolves { font-size: 0.8rem; color: var(--text-dim); }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; align-items: center; justify-content: center; }
+.modal-overlay.visible { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1.5rem; width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; }
+.modal h3 { margin-bottom: 0.75rem; }
+.modal pre { background: var(--bg); border: 1px solid var(--border); border-radius: 0.375rem; padding: 1rem; font-family: var(--mono); font-size: 0.8rem; white-space: pre-wrap; word-wrap: break-word; max-height: 50vh; overflow-y: auto; }
+.modal-actions { display: flex; gap: 0.75rem; margin-top: 1rem; justify-content: flex-end; }
+</style>
+</head>
+<body>
+
+<div class="brand">BMad Method</div>
+<h1>Quality Analysis: <span id="skill-name"></span></h1>
+<div class="subtitle" id="subtitle"></div>
+
+<div id="portrait"></div>
+<div id="grade-area"></div>
+<div class="narrative" id="narrative"></div>
+
+<div id="capabilities-section"></div>
+<div id="broken-section"></div>
+<div id="opportunities-section"></div>
+<div id="strengths-section"></div>
+<div id="recommendations-section"></div>
+<div id="detailed-section"></div>
+
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3 id="modal-title">Generated Prompt</h3>
+    <pre id="modal-content"></pre>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" onclick="copyModal()">Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
+
+<script id="report-data" type="application/json">{"meta": {"skill_name": "barometre-sites", "skill_path": "/Users/mickaelh/Documents/Opquast/Test Formation/kit-barometre-sites/code/.claude/skills/barometre-sites", "timestamp": "2026-11-19T11:25:00Z", "scanner_count": 7, "type": "agent"}, "agent_profile": {"icon": "📊", "display_name": "Baromètre qualité des sites", "title": "Skill de workflow : mesure répétable de la conformité Opquast V5 d'un parc de sites", "portrait": "Le Baromètre qualité des sites est un opérateur de mesure prudent et méthodique : il relance des heures de contrôles sur des boutiques en production sans jamais rien commander, saisir ni contourner, et exige au moins deux sources indépendantes par règle. Son cœur est un protocole d'arbitrage en quatre questions où l'on « ne fait jamais voter les outils » et où l'humain tranche ce qui reste ambigu. Né comme carnet de bord d'un parc précis, il est désormais le moteur d'un kit pédagogique distribué à des élèves et à d'autres assistants IA."}, "capabilities": [{"name": "Vérifier et installer les prérequis", "file": "scripts/verifier_installation.py", "status": "good", "finding_count": 2, "findings": [{"title": "Le rôle de chaque prérequis manquant est recomposé par le LLM au lieu d'être fourni par le script", "severity": "low", "source": "script-opportunities"}, {"title": "« Versions épinglées dans package.json » inexact : c'est le fichier de verrouillage qui épingle", "severity": "low", "source": "structure"}]}, {"name": "Passage automatique (referentiel, moteur, mesure, releve, sources, synthese)", "file": "scripts/barometre.py", "status": "needs-attention", "finding_count": 4, "findings": [{"title": "« Le matin : lire le journal » pousse à charger un journal de plusieurs heures en entier", "severity": "high", "source": "script-opportunities"}, {"title": "Pas de point de reprise explicite après la nuit ou une compaction", "severity": "medium", "source": "enhancement-opportunities"}, {"title": "Sites traités l'un après l'autre : cause principale des « plusieurs heures »", "severity": "medium", "source": "execution-efficiency"}, {"title": "Option --forcer (et code de sortie 4) non documentée", "severity": "low", "source": "structure"}]}, {"name": "Lectures IA indépendantes (3 lectures x 2 lots)", "file": "references/lectures-independantes.md", "status": "needs-attention", "finding_count": 9, "findings": [{"title": "La lecture DOM exige une synthèse préalable que le Déroulé ne mentionne pas", "severity": "high", "source": "structure"}, {"title": "Aucun script ne produit la liste des règles à une seule source", "severity": "high", "source": "script-opportunities"}, {"title": "Sorties des sous-agents non validées (schéma, listes de règles, lecture visuelle)", "severity": "high", "source": "script-opportunities"}, {"title": "Format de sortie donné pour une seule des trois lectures", "severity": "medium", "source": "prompt-craft"}, {"title": "Lecture visuelle retenue sans vérification, contrairement à ce qu'affirme SKILL.md", "severity": "medium", "source": "prompt-craft"}, {"title": "Protocoles get_rule rechargés dans chaque sous-agent (plus de la moitié en double)", "severity": "medium", "source": "execution-efficiency"}, {"title": "Briefs des six sous-agents assemblés à la main", "severity": "medium", "source": "script-opportunities"}, {"title": "Lots figés « A, B, C » et « D, E, F » : rien pour 1 ou 10 sites", "severity": "medium", "source": "enhancement-opportunities"}, {"title": "Lancement en parallèle dans un seul message non explicite", "severity": "low", "source": "execution-efficiency"}]}, {"name": "Trancher les écarts", "file": "scripts/lecture_critique.py", "status": "needs-attention", "finding_count": 2, "findings": [{"title": "Contrôle « aucun écart sans décision » écrit en one-liner Python fragile dans le prompt", "severity": "medium", "source": "prompt-craft"}, {"title": "Une nouvelle source oubliée dans ABR gonfle en silence la part à deux sources", "severity": "low", "source": "script-opportunities"}]}, {"name": "Robot Opquast basics d'eServices Manager", "file": "referentiel/audits-esm.json", "status": "needs-attention", "finding_count": 3, "findings": [{"title": "ESM requis implicitement : la synthèse casse vraisemblablement sans export esm-basics", "severity": "high", "source": "enhancement-opportunities"}, {"title": "Chemin d'import de l'export ESM (agregat.json, synthese_esm_basics.py) non décrit", "severity": "medium", "source": "agent-cohesion"}, {"title": "Report des changements dans ESM fait par comparaison manuelle de deux CSV", "severity": "high", "source": "script-opportunities"}]}, {"name": "Contre-examen humain", "file": "scripts/fiche_contre_examen.py", "status": "needs-attention", "finding_count": 1, "findings": [{"title": "Source revendiquée et lue par la page de suivi, mais absente de SKILL.md", "severity": "medium", "source": "agent-cohesion"}]}, {"name": "Publication (données personnelles, Artifact, CSV, ESM, note de cadrage, commit)", "file": "SKILL.md", "status": "needs-attention", "finding_count": 6, "findings": [{"title": "Le contrôle des données personnelles peut passer sans rien examiner", "severity": "high", "source": "prompt-craft"}, {"title": "URL d'Artifact de suivi codée en dur", "severity": "high", "source": "structure"}, {"title": "note_cadrage.md absent du kit", "severity": "medium", "source": "structure"}, {"title": "« Commit et push » suppose un dépôt Git que le kit ne fournit pas", "severity": "low", "source": "agent-cohesion"}, {"title": "Compte rendu final recalculé à la main", "severity": "medium", "source": "script-opportunities"}, {"title": "Étapes indépendantes de publication faites l'une après l'autre", "severity": "low", "source": "execution-efficiency"}]}, {"name": "Installation multi-assistants", "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md", "status": "needs-attention", "finding_count": 4, "findings": [{"title": "Liste des sites à modifier dans cinq scripts, incohérente avec ecrans_en_ligne.csv du kit", "severity": "high", "source": "enhancement-opportunities"}, {"title": "Fichier de prompt à la racine de la skill et chemin ../ (lint)", "severity": "high", "source": "structure"}, {"title": "Prérequis et consignes de nuit recopiés, déjà divergents de SKILL.md", "severity": "low", "source": "prompt-craft"}, {"title": "SKILL.md absent du tableau des fichiers à adapter", "severity": "medium", "source": "structure"}]}], "narrative": "Une skill de workflow remarquablement bien pensée : garde-fous de production exemplaires, travail lourd confié à un orchestrateur Python fidèle à la documentation, et un protocole d'arbitrage en quatre questions qui donne au modèle un vrai cadre de jugement. Sa principale faiblesse est d'être restée écrite pour une personne et un parc précis alors qu'elle est désormais distribuée dans un kit, et de laisser au modèle, aux jointures entre étapes, des contrôles et des calculs déterministes qui devraient être des scripts.", "grade": "Good", "broken": [{"title": "Le contrôle des données personnelles peut réussir sans rien avoir examiné", "file": "SKILL.md", "line": 101, "detail": "La commande grep cible resultats/*-$(date +%F). Après un passage de nuit commencé la veille, aucun dossier ne correspond : zsh lève « no matches found », bash écrit « No such file » sur la sortie d'erreur, et la sortie standard reste vide, exactement le résultat attendu. C'est le seul garde-fou avant commit et push.", "action": "Sortir le contrôle dans scripts/verifier_publication.py : cibler les dossiers du dernier passage, échouer explicitement si aucun fichier n'est trouvé, renvoyer un code non nul en cas de détection, et le lancer avant chaque commit.", "severity": "high", "source": "prompt-craft"}, {"title": "Publication sur une URL d'Artifact appartenant au compte d'origine", "file": "SKILL.md", "line": 104, "detail": "L'adresse https://claude.ai/artifact/12y1tK8TKX8uMtbi92d1Q8 est figée. Chez toute autre personne du kit, la publication est refusée ou vise le suivi de quelqu'un d'autre.", "action": "Lire l'adresse dans un fichier de configuration ; si elle est vide, publier une nouvelle page et y noter son adresse.", "severity": "high", "source": "structure"}, {"title": "La lecture DOM est placée avant la synthèse dont elle dépend", "file": "references/lectures-independantes.md", "line": 23, "detail": "SKILL.md place les trois lectures « entre sources et synthese », mais la lecture 3 porte sur les règles restées à une seule source « après l'étape synthese ». Un agent qui suit SKILL.md à la lettre lance la lecture DOM sans liste de règles.", "action": "Écrire la séquence explicite dans le Déroulé : lectures 1 et 2 et première synthèse en parallèle, extraction scriptée des règles à une seule source, lecture 3, synthèse finale.", "severity": "high", "source": "structure"}, {"title": "Synthèse vraisemblablement bloquée sans export eServices Manager", "file": "scripts/etat_barometre.py", "line": 0, "detail": "etat_barometre.py et fiche_contre_examen.py supposent des dossiers esm-scripts-* et esm-basics-* (sorted(...)[-1]). ESM est présenté comme facultatif, mais sur un kit neuf la synthèse du matin risque une erreur d'index.", "action": "Ajouter une ligne « sans ESM » dans SKILL.md et un repli dans le code (source absente, colonne vide), ou faire signaler l'absence par verifier_installation.py avant la nuit.", "severity": "high", "source": "enhancement-opportunities"}], "opportunities": [{"name": "Une skill écrite pour une personne et un parc, distribuée comme un kit", "description": "SKILL.md parle à Mattea, cite Colorz, une URL d'Artifact fixe, un dépôt personnel, une note de cadrage absente du kit et des chiffres datés d'un passage. Le guide d'installation, lui, s'adresse à n'importe quelle élève et n'importe quel assistant. Les étapes de publication 2, 4, 5 et 6 sont impossibles ou fausses hors du parc d'origine.", "severity": "high", "impact": "Kit transmissible sans réécriture du texte, étapes de publication valides chez chaque élève, déclenchement correct quand une élève parle de « ses sites ».", "action": "Séparer la méthode (universelle, à figer) de la configuration du parc : un fichier de profil (personne responsable, URL de suivi ou vide, ESM oui/non, dépôt Git oui/non, note de cadrage oui/non), Publication conditionnelle, description générique en deux temps, chiffres datés retirés du prompt.", "finding_count": 12, "findings": [{"title": "Mattea, Colorz et « 6 boutiques Shopify » dans la description et le corps", "file": "SKILL.md", "line": 3, "detail": "Sept mentions de Mattea (l. 19, 79, 88, 105, 106, 108) ; la description est le texte de déclenchement recopié chez chaque élève.", "source": "structure"}, {"title": "Valeurs d'installation codées en dur", "file": "SKILL.md", "line": 104, "detail": "URL d'Artifact, dépôt personnel, note de cadrage : l'agent demandera l'accord de « Mattea » et échouera à publier.", "source": "prompt-craft"}, {"title": "Identité double : outil interne et kit pour élèves", "file": "SKILL.md", "line": 0, "detail": "Le lecteur ne sait pas s'il est dans le cas « Mattea » ou dans le cas « élève » ; dimension cohérence d'identité notée moyenne.", "source": "agent-cohesion"}, {"title": "Deux publics, un seul texte", "file": "SKILL.md", "line": 0, "detail": "Étapes de publication 2, 4, 5 et 6 impossibles pour une élève.", "source": "enhancement-opportunities"}, {"title": "Nom de la commanditaire répété dans les consignes et les scripts", "file": "SKILL.md", "line": 88, "detail": "À lever en paramètre « commanditaire ».", "source": "customization-surface"}, {"title": "URL de publication de l'Artifact codée en dur (aussi dans generer_suivi.py)", "file": "SKILL.md", "line": 104, "detail": "À lever en paramètre « suivi_artifact_url », vide par défaut.", "source": "customization-surface"}, {"title": "Étapes eServices Manager présentées comme obligatoires", "file": "SKILL.md", "line": 106, "detail": "Mieux servies par des points d'accroche que par un booléen.", "source": "customization-surface"}, {"title": "Référence orpheline note_cadrage.md", "file": "SKILL.md", "line": 107, "detail": "Fichier absent du kit ; verifier_page_a4.py le cherche à la racine.", "source": "structure"}, {"title": "Chiffres figés et déjà faux", "file": "SKILL.md", "line": 8, "detail": "« 92 % le 13/11/2026 », « 6 boutiques, 47 écrans », « 41 écartées » alors que le kit contient 1 service, 5 écrans et 42 règles écartées.", "source": "script-opportunities"}, {"title": "Commit et push sans dépôt Git", "file": "SKILL.md", "line": 20, "detail": "Le kit n'est pas un dépôt ; préciser « si le projet est sous Git ».", "source": "agent-cohesion"}, {"title": "Description très longue, énumération d'outils inutile au déclenchement", "file": "SKILL.md", "line": 3, "detail": "Environ 900 caractères ; risque de collision avec d'autres skills Opquast ; contient un tiret long que la skill bannit.", "source": "prompt-craft"}, {"title": "SKILL.md absent du tableau d'adaptation de l'INSTALLER", "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md", "line": 41, "detail": "Le guide liste les fichiers à adapter sans citer la skill elle-même.", "source": "structure"}]}, {"name": "Les lectures indépendantes : ordre non dit et entrées préparées à la main", "description": "La lecture DOM dépend d'une première synthèse et d'une liste de règles à une seule source qu'aucun script ne produit. Les briefs, les protocoles get_rule et la validation des sorties sont laissés au modèle, alors que ce sont des opérations déterministes. Une sortie mal formée est ignorée en silence par lecture_critique.py.", "severity": "high", "impact": "Plus aucun sous-agent lancé sans entrée, des briefs identiques d'un passage à l'autre, des scores protégés contre un format inventé, et 50 à 60 % de jetons de protocoles en moins.", "action": "Ajouter une étape scriptée preparer_lectures qui écrit dans <hors>/lectures/ les protocoles, la liste des règles à une seule source par lot et les six briefs complets (schéma de sortie compris), puis un valider_lectures.py en tête de synthèse ; réécrire le Déroulé avec les vagues parallèles explicites.", "finding_count": 12, "findings": [{"title": "Ordre incohérent entre la lecture DOM et l'étape synthese", "file": "SKILL.md", "line": 76, "detail": "Il faut une synthèse avant la lecture DOM, puis une seconde.", "source": "structure"}, {"title": "Calcul déterministe laissé à l'agent pour la lecture DOM", "file": "references/lectures-independantes.md", "line": 23, "detail": "Comptage de sources sur les sorties de lecture_critique.py.", "source": "prompt-craft"}, {"title": "Dépendance cachée : la lecture 3 a besoin d'une synthèse préalable", "file": "SKILL.md", "line": 76, "detail": "Ordre efficace : lectures 1-2 et synthèse rapide en parallèle, puis lecture 3, puis synthèse finale.", "source": "execution-efficiency"}, {"title": "Le parent construit à la main la liste des règles à une seule source", "file": "references/lectures-independantes.md", "line": 23, "detail": "10 à 40 k jetons de contexte parent.", "source": "execution-efficiency"}, {"title": "Entrée de la lecture DOM que rien ne produit", "file": "references/lectures-independantes.md", "line": 23, "detail": "Seul generer_suivi.py calcule n < 2, pour l'affichage.", "source": "agent-cohesion"}, {"title": "Script regles_une_source.py", "file": "references/lectures-independantes.md", "line": 23, "detail": "La logique existe déjà dans exporter_csv.py:81-84.", "source": "script-opportunities"}, {"title": "Format de sortie absent pour deux des trois lectures", "file": "references/lectures-independantes.md", "line": 17, "detail": "Nom de site inexact ou structure différente : lecture ignorée en silence (.get(nom, {})).", "source": "prompt-craft"}, {"title": "Validation des sorties des sous-agents", "file": "references/lectures-independantes.md", "line": 9, "detail": "verifier_citations.py ne contrôle ni schéma, ni listes de règles, ni longueurs, ni rien pour lecture_visuelle.", "source": "script-opportunities"}, {"title": "Affirmation trop large sur la vérification des preuves", "file": "SKILL.md", "line": 78, "detail": "lecture_visuelle est retenue sans vérification (lecture_critique.py:442-443).", "source": "prompt-craft"}, {"title": "Protocoles get_rule rechargés dans chaque sous-agent", "file": "references/lectures-independantes.md", "line": 8, "detail": "Environ 142 appels pour 63 protocoles distincts.", "source": "execution-efficiency"}, {"title": "Briefs des six sous-agents assemblés à la main", "file": "references/lectures-independantes.md", "line": 5, "detail": "preparer_lectures.py écrirait des briefs complets et signalerait les sites sans entrées.", "source": "script-opportunities"}, {"title": "Lots figés pour six sites", "file": "references/lectures-independantes.md", "line": 3, "detail": "Prévoir des lots de trois sites au plus dans l'ordre de ecrans_en_ligne.csv.", "source": "enhancement-opportunities"}]}, {"name": "Des garde-fous déterministes écrits en ligne de commande dans le prompt", "description": "Les deux conditions de passage les plus importantes (aucune donnée personnelle, aucun écart sans décision) sont des commandes copiées depuis le prompt et interprétées par le modèle. L'une peut réussir sans rien examiner, l'autre dépend de la structure interne de lecture.json et casse sans bruit.", "severity": "high", "impact": "Une vérification de confidentialité qui ne dépend plus d'une lecture attentive, et une synthèse qui refuse d'elle-même de finir avec un écart non tranché.", "action": "Remplacer les commandes en ligne par des scripts à code de sortie : verifier_publication.py (données personnelles, tiret long, fichiers hors dépôt suivis par Git) et lecture_critique.py --verifier (écarts sans décision, sources absentes d'ABR), lancés par l'étape synthese ; le prompt dit seulement « doit finir avec le code 0 ».", "finding_count": 6, "findings": [{"title": "Contrôle des données personnelles lié à la date du jour", "file": "SKILL.md", "line": 102, "detail": "Un passage de nuit écrit des dossiers datés de la veille.", "source": "structure"}, {"title": "Le contrôle des données personnelles peut passer sans rien signaler", "file": "SKILL.md", "line": 101, "detail": "Sortie standard vide identique au succès attendu.", "source": "prompt-craft"}, {"title": "Vérification avant publication incomplète", "file": "SKILL.md", "line": 100, "detail": "Rien ne vérifie que textes, DOM et captures ne sont pas entrés dans Git, ni le tiret long hors des deux livrables nettoyés.", "source": "script-opportunities"}, {"title": "One-liner Python de 300 caractères pour la condition « liste vide »", "file": "SKILL.md", "line": 92, "detail": "Dépend des clés _, ecarts, statut, regle != '-'.", "source": "prompt-craft"}, {"title": "Contrôle des écarts sans décision à intégrer à lecture_critique.py", "file": "SKILL.md", "line": 90, "detail": "Sortie lisible et code non nul.", "source": "script-opportunities"}, {"title": "Nouvelle source sans colonne dans la matrice", "file": "SKILL.md", "line": 96, "detail": "Un oubli d'ABR compte comme une famille à part et gonfle la part à deux sources.", "source": "script-opportunities"}]}, {"name": "Le matin, moment critique et le moins outillé", "description": "Après des heures de mesure, la personne revient dans une session neuve : il faut lire un journal volumineux, savoir où l'on en est, et peut-être faire sans ESM, sans MCP Opquast ou sans Shopify. Aucune section de reprise, aucun repli et aucun tri d'intention n'existent, et le contre-examen humain n'est décrit nulle part.", "severity": "high", "impact": "Un réveil sans impasse, 20 à 100 k jetons évités sur le journal, et une skill qui ne relance pas des heures de mesure pour une simple question de score.", "action": "Ajouter une section « Au démarrage et reprise » : trier l'intention (relancer tout, un site, consulter le dernier résultat, adapter, comprendre un écart), lire un bilan JSON écrit par barometre.py plutôt que le journal, vérifier l'état des lectures et des écarts, et documenter les replis sans ESM, sans MCP Opquast et hors Shopify ainsi que le contre-examen humain.", "finding_count": 11, "findings": [{"title": "Le journal de nuit risque d'être lu en entier", "file": "SKILL.md", "line": 61, "detail": "Le bilan récapitulatif existe déjà en fin de passage (barometre.py:171-174).", "source": "execution-efficiency"}, {"title": "Bilan JSON du passage à écrire par barometre.py", "file": "SKILL.md", "line": 61, "detail": "3 000 à 20 000 jetons remplacés par un JSON de 200 à 400 jetons.", "source": "script-opportunities"}, {"title": "Pas de point de reprise explicite", "file": "SKILL.md", "line": 61, "detail": "etat_barometre.py existe mais n'est pas présenté comme tableau de bord de reprise.", "source": "enhancement-opportunities"}, {"title": "Synthèse sans historique ni ESM", "file": "scripts/etat_barometre.py", "line": 0, "detail": "Impasse au moment le plus attendu.", "source": "enhancement-opportunities"}, {"title": "ESM est requis implicitement", "file": "SKILL.md", "line": 79, "detail": "Ni chemin d'import, ni comportement sans export.", "source": "agent-cohesion"}, {"title": "Pas de repli si le MCP Opquast est absent", "file": "SKILL.md", "line": 85, "detail": "Le repli (fiche publique) n'existe que dans l'INSTALLER (l. 71).", "source": "structure"}, {"title": "Repli sans MCP pour les sous-agents", "file": "references/lectures-independantes.md", "line": 8, "detail": "Les sous-agents bloqueraient sans get_rule.", "source": "enhancement-opportunities"}, {"title": "Contre-examen humain, source fantôme", "file": "SKILL.md", "line": 76, "detail": "Produit par contre_examen.mjs et fiche_contre_examen.py, lu par generer_suivi.py, jamais mentionné.", "source": "agent-cohesion"}, {"title": "Tri d'intention absent à l'entrée", "file": "SKILL.md", "line": 3, "detail": "« Quel est le score de la Boutique B ? » peut déclencher un passage de plusieurs heures.", "source": "enhancement-opportunities"}, {"title": "Sites non Shopify sans traitement décrit", "file": "SKILL.md", "line": 72, "detail": "Préciser les scripts propres à Shopify et leur saut.", "source": "enhancement-opportunities"}, {"title": "Pas d'ordre de démarrage explicite", "file": "SKILL.md", "line": 22, "detail": "Une phrase « Au démarrage » répondrait aussi aux constats de pré-passe sur On Activation.", "source": "structure"}]}, {"name": "La liste des sites dispersée dans cinq scripts", "description": "Adapter le baromètre impose d'éditer SITES et SERVICES dans cinq scripts Python, audits-esm.json et ANALYSE_SOURCES. Dans le kit, ecrans_en_ligne.csv contient « Ma boutique » alors que les scripts attendent « Boutique A » à « F » : la première passe d'une élève produit des résultats ignorés par la synthèse, sans message.", "severity": "medium", "impact": "Supprime la principale source d'erreur pour les élèves et sert tous les assistants, pas seulement Claude.", "action": "Créer une source unique referentiel/sites.json lue par les cinq scripts (ou configurer_sites.py qui vérifie et réécrit les constantes), et faire contrôler la cohérence par verifier_installation.py à chaque passage.", "finding_count": 4, "findings": [{"title": "Une seule source de vérité pour la liste des sites", "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md", "line": 41, "detail": "Incohérence « Ma boutique » contre « Boutique A à F » non détectée.", "source": "enhancement-opportunities"}, {"title": "Script configurer_sites.py", "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md", "line": 41, "detail": "Lint de configuration à zéro jeton à chaque passage.", "source": "script-opportunities"}, {"title": "Le parc de sites est la vraie surface de personnalisation", "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md", "line": 41, "detail": "Cas typique d'une modification de configuration qui oblige à un fork.", "source": "customization-surface"}, {"title": "Assistant d'adaptation", "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md", "line": 39, "detail": "Transformer l'étape 3 du guide en script.", "source": "agent-cohesion"}]}], "strengths": [{"title": "Protocole d'arbitrage en quatre questions", "detail": "Ordonné, illustré par des règles réelles (124, 153), avec le principe « on ne fait jamais voter les outils » et une issue « à arbitrer » quand l'ambiguïté demeure. C'est ce qui permet de juger un cas imprévu : à ne pas transformer en table de décision."}, {"title": "Garde-fous de production concrets et cohérents partout", "detail": "Aucune commande, aucun contournement d'anti-robot ou de 429, refus des cookies, aucun mot de passe saisi, aucun robot payant sans accord : chaque interdit dit quoi faire à la place, et SKILL.md, l'INSTALLER, AGENTS.md et le code disent la même chose."}, {"title": "Consentement à l'installation exemplaire", "detail": "Vérification sans modification, liste avec rôle et commande, accord en trois options, npm ci --ignore-scripts ; barometre.py s'arrête avec le code 3 sur le même principe."}, {"title": "Indépendance des lectures IA réellement outillée", "detail": "Interdiction de lire resultats/, consignes communes à copier dans chaque brief, preuves citées mot pour mot et vérifiées par verifier_citations.py : le jugement revient à l'IA, la vérification au script."}, {"title": "Correspondance exacte entre la skill et le code", "detail": "Étapes, options et sorties décrites existent dans barometre.py (ORDRE, ANALYSE_SOURCES, poser, ABR) : la skill est fiable à suivre."}, {"title": "Travail lourd délégué et contexte parent préservé", "detail": "Un seul orchestrateur avec reprise, essai à blanc, site seul et mode nuit ; les sources ne sont lues que par les sous-agents, qui écrivent dans des fichiers et renvoient un bilan court."}, {"title": "Portabilité pensée vers d'autres assistants", "detail": "La table d'équivalences entre les outils Claude (Agent, MCP, Artifact, SendUserFile, AskUserQuestion) et les autres assistants est rare et très utile."}, {"title": "Prise en compte de ce que vit l'utilisatrice", "detail": "Passage de nuit avec liste de préparation de l'ordinateur, secteur vérifié, veille bloquée, journal daté et reprise par --depuis."}, {"title": "Aucun remplissage", "detail": "Aucune formule défensive, aucune méta-explication, aucun renvoi arrière ; SKILL.md reste court (115 lignes) avec une divulgation progressive saine."}], "detailed_analysis": {"structure": {"assessment": "Structurellement saine en tant que skill de workflow : frontmatter valide, six étapes adossées à un orchestrateur réel, toutes les références de scripts résolues. Les sections de persona BMAD manquantes le sont par conception ; les vrais problèmes sont la désanonymisation et l'ordre des lectures, traités dans les thèmes.", "findings": [{"title": "Sections Overview, Identity, Communication Style, Principles, On Activation absentes (pré-passe)", "file": "SKILL.md", "line": 1, "severity": "low", "detail": "Hors cible pour une skill de workflow : leurs fonctions sont tenues par l'introduction, les règles, les prérequis et le déroulé. Ajouter au plus une phrase « Au démarrage ».", "source": "structure"}, {"title": "Nom sans « agent » et clause « Use when » en anglais absente (pré-passe)", "file": "SKILL.md", "line": 1, "severity": "low", "detail": "La clause de déclenchement existe en français (« Utiliser dès qu'on parle de… »).", "source": "structure"}, {"title": "Fichier de prompt à la racine et chemin ../ (lint de chemins)", "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md", "line": 51, "severity": "low", "detail": "Fichier délibérément placé pour les autres assistants et référencé par AGENTS.md ; le ../hors est un exemple d'argument utilisateur, pas une référence interne. À garder, ou déplacer en mettant à jour AGENTS.md.", "source": "structure"}, {"title": "Règle « seul clic autorisé » contredite par la règle panier", "file": "SKILL.md", "line": 16, "severity": "medium", "detail": "Écrire « Seuls clics autorisés : refuser les cookies, et ajouter au panier et ouvrir le paiement sans rien saisir ».", "source": "structure"}, {"title": "--forcer non documentée, versions « épinglées » inexact, liste de règles non triée", "file": "SKILL.md", "line": 65, "severity": "low", "detail": "Détails d'exactitude.", "source": "structure"}]}, "persona": {"assessment": "Pas de persona : la voix est celle d'un mode d'emploi impératif, concret et sans remplissage, ce qui convient. L'introduction tient lieu d'Overview mais la justification (pourquoi deux sources, pourquoi l'indépendance, à qui sert le livrable) est éparpillée.", "overview_quality": "appropriate", "findings": [{"title": "Justification éparpillée", "file": "SKILL.md", "line": 8, "severity": "low", "detail": "Regrouper en une ou deux phrases pourquoi deux sources et pourquoi des lectures indépendantes.", "source": "prompt-craft"}, {"title": "Règles de forme mêlées aux règles de sécurité", "file": "SKILL.md", "line": 20, "severity": "low", "detail": "Déplacer « aucun tiret long » et le rythme de commit dans une section « Conventions ».", "source": "prompt-craft"}, {"title": "Dérive entre SKILL.md et l'INSTALLER", "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md", "line": 37, "severity": "low", "detail": "Windows, VPN, contre-examen et conditions d'ajout d'un outil divergent déjà.", "source": "prompt-craft"}]}, "cohesion": {"assessment": "Très cohérente sur son cœur de métier : une seule promesse tenue, un pipeline que le code reproduit exactement, des garde-fous identiques partout. Les faiblesses tiennent à la double identité (outil interne et kit pour élèves) et à des étapes présentes dans le code mais pas dans la skill.", "dimensions": {"persona_capability_alignment": {"score": "strong", "notes": "Tout ce que promet la description est livré par des étapes nommées et des scripts réels ; les principes se retrouvent dans le code."}, "identity_consistency": {"score": "moderate", "notes": "SKILL.md parle à Mattea et à son parc ; le guide d'installation à n'importe quelle élève."}, "capability_completeness": {"score": "moderate", "notes": "Manquent l'export ESM, le contre-examen, la liste des règles à une seule source et un mode sans ESM."}, "redundancy": {"score": "moderate", "notes": "Prérequis, règles absolues et passage de nuit écrits deux fois."}, "external_integration": {"score": "strong", "notes": "Chaque outil a une raison et un équivalent hors Claude."}, "granularity": {"score": "strong", "notes": "Six étapes au bon niveau avec reprise et exécution ciblée."}, "user_journey": {"score": "moderate", "notes": "La boucle synthèse, lecture DOM, synthèse n'est pas dite."}}, "findings": [{"title": "Documentation à deux endroits", "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md", "line": 23, "severity": "low", "detail": "Garder le détail dans SKILL.md et faire pointer l'INSTALLER vers ses sections.", "source": "agent-cohesion"}, {"title": "Références mortes ou non branchées", "file": "scripts/README.md", "line": 80, "severity": "low", "detail": "controles_email.py absent, checkdmarc et resultats/email-* hors périmètre, import_esm.py et generer_schema.py hors déroulé.", "source": "agent-cohesion"}]}, "efficiency": {"assessment": "Efficace dans l'ensemble : le travail long est confié à un script, les lectures à des sous-agents en arrière-plan qui écrivent dans des fichiers. Aucun problème critique ; les frictions sont aux jointures (dépendance cachée, protocoles en double, journal, sites en série).", "findings": [{"title": "Traiter les sites en parallèle dans les scripts réseau", "file": "scripts/controles_reseau.py", "line": 19, "severity": "medium", "detail": "Jusqu'à 6 fois moins de temps en entrelaçant les hôtes ; risque de 429 Shopify par IP et fusion sans verrou : choix de méthode à arbitrer par la responsable.", "source": "execution-efficiency"}, {"title": "Recouvrir les étapes sans réseau", "file": "scripts/barometre.py", "line": 158, "severity": "low", "detail": "Gain modeste, utile seulement si le parallélisme des sites n'est pas retenu.", "source": "execution-efficiency"}, {"title": "Publication : étapes 2, 3 et vérification A4 regroupables", "file": "SKILL.md", "line": 98, "severity": "low", "detail": "2 à 3 allers-retours évités.", "source": "execution-efficiency"}]}, "experience": {"assessment": "L'installation et la sécurité sont limpides, mais la skill ne sert qu'un de ses deux publics. Le matin après la nuit est le moment le plus fragile, et la valeur longitudinale d'un baromètre (ce qui a progressé) n'est pas exploitée.", "journeys": [{"archetype": "first-timer", "summary": "Une élève installe le kit sur son propre site : l'installation est exemplaire, puis elle doit éditer six fichiers Python et se retrouve face à des consignes adressées à Mattea et à des étapes de publication impossibles.", "friction_points": ["Configuration des sites dispersée dans le code", "Consignes nominatives (« sans l'accord de Mattea »)", "Artifact, note de cadrage et dépôt Git inexistants chez elle", "Chiffres datés présentés comme l'état courant"], "bright_spots": ["Règles de sécurité limpides", "Installation avec consentement", "--essai pour un essai à blanc"]}, {"archetype": "expert", "summary": "Mattea, au cinquième passage, veut relancer un seul site et republier : les options existent, mais la skill impose toujours le parcours complet et ne dit rien de l'évolution depuis le dernier passage.", "friction_points": ["Pas de mode « passage ciblé rapide » documenté", "Pas de comparaison avec le passage précédent"], "bright_spots": ["--service, --etapes et --depuis", "Commande de contrôle des écarts sans décision"]}, {"archetype": "confused", "summary": "Une personne demande un audit d'une page ou le score d'une boutique : la description large capte la demande et risque de lancer des heures de mesure.", "friction_points": ["Aucun tri d'intention à l'entrée", "Pas de branche « consulter le dernier résultat »"], "bright_spots": ["resultats-exemple/ pourrait servir de démonstration immédiate"]}, {"archetype": "edge-case", "summary": "Un site non Shopify, un seul site, ou un site très bloqué par des 429 : la méthode tient, mais la skill ne dit pas quoi sauter ni quand un score devient indicatif.", "friction_points": ["Scripts propres à Shopify sans saut prévu", "Lots figés pour six sites", "Pas d'alerte de fiabilité du score", "Comparabilité non traitée si un écran est ajouté"], "bright_spots": ["Règle « non testé avec la raison » claire"]}, {"archetype": "hostile-environment", "summary": "Sans ESM, sans MCP Opquast ou après une session fermée pendant la nuit, la personne arrive le matin dans une impasse.", "friction_points": ["Synthèse vraisemblablement bloquée sans export ESM", "Pas de repli sans MCP Opquast dans SKILL.md", "Pas d'état de reprise", "Secteur vérifié au départ seulement"], "bright_spots": ["Dégradation progressive pour Windows et les autres assistants", "Arrêt code 3 avant les étapes réseau"]}, {"archetype": "automator", "summary": "Un planificateur ou un autre agent peut lancer barometre.py presque seul, mais la skill impose AskUserQuestion et ne définit aucun contrat de sortie.", "friction_points": ["Choix nuit ou maintenant forcé par question", "Aucun résumé JSON (scores, écarts, NT, fichiers)"], "bright_spots": ["--nuit, journal daté et codes de sortie 2, 3, 4"]}], "autonomous": {"potential": "partially-adaptable", "notes": "Le moment, les étapes automatiques, les lectures IA, la synthèse, les CSV et le contrôle des données personnelles peuvent tourner seuls ; l'accord d'installation, les arbitrages, le robot ESM et la publication restent humains. Un mode sans interaction devrait s'arrêter après la synthèse et renvoyer un JSON court."}, "findings": [{"title": "Évolution entre deux passages", "file": "SKILL.md", "line": 108, "severity": "medium", "detail": "Gains, pertes et règles qui changent de statut : c'est la promesse d'un baromètre.", "source": "enhancement-opportunities"}, {"title": "Démonstration sur les résultats d'exemple", "file": "SKILL.md", "line": 0, "severity": "medium", "detail": "Proposer de voir scores.csv et quelques lignes de tests.csv avant la nuit de mesure.", "source": "enhancement-opportunities"}, {"title": "Garde-fou sur la fiabilité du score", "file": "SKILL.md", "line": 108, "severity": "medium", "detail": "« Score indicatif » sous un seuil de règles mesurées ou au-delà de 10 % de NT.", "source": "enhancement-opportunities"}, {"title": "Estimation de durée et glossaire minimal", "file": "SKILL.md", "line": 48, "severity": "low", "detail": "Estimer à partir du nombre d'écrans ; définir C, NC, NA, NT, volet, relevé, hors.", "source": "enhancement-opportunities"}]}, "scripts": {"assessment": "Le placement de l'intelligence est très bon : mesure, recoupement, vérification des preuves et livrables sont déterministes, le modèle garde les vrais jugements. Les opportunités sont aux jointures entre étapes, où le modèle lit de gros fichiers pour en tirer quelques chiffres.", "token_savings": "13 000 à 50 000 jetons par passage complet, plus 1 000 à 3 000 à l'installation", "findings": [{"title": "diff_passages.py pour le report dans eServices Manager", "file": "SKILL.md", "line": 106, "severity": "high", "detail": "Comparer les deux derniers barometre.csv et classer les changements par audit cible ; sert aussi au compte rendu et à l'évolution.", "source": "script-opportunities"}, {"title": "bilan_passage.py pour le compte rendu final", "file": "SKILL.md", "line": 108, "severity": "medium", "detail": "Écarts tranchés et à arbitrer, NT par raison, évolution : chiffres identiques aux CSV.", "source": "script-opportunities"}, {"title": "Rôle de chaque prérequis dans verifier_installation.py", "file": "scripts/verifier_installation.py", "line": 94, "severity": "low", "detail": "Champ « rôle » et option --json : liste identique d'un assistant à l'autre.", "source": "script-opportunities"}, {"title": "Chiffres de la note de cadrage remplis par marqueurs", "file": "SKILL.md", "line": 107, "severity": "low", "detail": "Depuis le bilan JSON, puis verifier_page_a4.py.", "source": "script-opportunities"}]}}, "recommendations": [{"rank": 1, "action": "Séparer la méthode de la configuration du parc : un fichier de profil (personne responsable, URL de suivi ou vide, ESM, Git, note de cadrage) et une source unique referentiel/sites.json lue par les scripts ; rendre Publication conditionnelle, remplacer « Mattea » par la personne responsable, raccourcir la description et retirer les chiffres datés.", "resolves": 16, "effort": "medium"}, {"rank": 2, "action": "Réécrire la séquence des lectures indépendantes (vagues parallèles explicites, synthèse avant la lecture DOM) et ajouter preparer_lectures.py (protocoles, règles à une seule source, briefs avec schéma de sortie) et valider_lectures.py en tête de synthèse.", "resolves": 12, "effort": "medium"}, {"rank": 3, "action": "Ajouter une section « Au démarrage et reprise » : tri d'intention, bilan JSON écrit par barometre.py au lieu de lire le journal, état des lectures et des écarts, replis sans ESM, sans MCP Opquast et hors Shopify, et étape de contre-examen humain.", "resolves": 11, "effort": "medium"}, {"rank": 4, "action": "Remplacer les commandes en ligne par des scripts à code de sortie : verifier_publication.py (données personnelles du dernier passage, tiret long, fichiers hors dépôt) avant chaque commit, et lecture_critique.py --verifier (écarts sans décision, sources absentes d'ABR) dans l'étape synthese.", "resolves": 6, "effort": "low"}, {"rank": 5, "action": "Ajouter diff_passages.py et bilan_passage.py pour le report ESM, le compte rendu final et l'évolution depuis le passage précédent.", "resolves": 4, "effort": "medium"}, {"rank": 6, "action": "Faire pointer l'INSTALLER vers SKILL.md au lieu de recopier prérequis et consignes de nuit, et corriger les détails d'exactitude (règle de clic, --forcer et code 4, verrouillage des versions, références mortes du README).", "resolves": 6, "effort": "low"}, {"rank": 7, "action": "Grouper les appels get_rule dans un cache de protocoles partagé et lancer chaque vague de sous-agents dans un seul message.", "resolves": 2, "effort": "low"}, {"rank": 8, "action": "Étudier, avec l'accord de la responsable, l'entrelacement des sites dans les scripts réseau (délai par hôte inchangé), en commençant à deux sites et en surveillant les 429.", "resolves": 1, "effort": "high"}, {"rank": 9, "action": "Si la skill rejoint un module BMAD, créer un customize.toml minimal (bloc [agent] stateless, commanditaire, suivi_artifact_url, points d'accroche, persistent_facts) en gardant la méthode et les règles de sécurité hors surcharge.", "resolves": 3, "effort": "low"}]}</script>
+<script>
+const RAW = JSON.parse(document.getElementById('report-data').textContent);
+const DATA = normalize(RAW);
+
+function normalize(d) {
+  if (d.meta) {
+    d.meta.skill_name = d.meta.skill_name || d.meta.skill || d.meta.name || 'Unknown';
+    d.meta.scanner_count = typeof d.meta.scanner_count === 'number' ? d.meta.scanner_count
+      : Array.isArray(d.meta.scanners_run) ? d.meta.scanners_run.length
+      : d.meta.scanner_count || 0;
+  }
+  d.strengths = (d.strengths || []).map(s =>
+    typeof s === 'string' ? { title: s, detail: '' } : { title: s.title || '', detail: s.detail || '' }
+  );
+  (d.opportunities || []).forEach(o => {
+    o.name = o.name || o.title || '';
+    o.finding_count = o.finding_count || (o.findings || o.findings_resolved || []).length;
+    if (!o.findings && o.findings_resolved) o.findings = [];
+    o.action = o.action || o.fix || '';
+  });
+  (d.broken || []).forEach(b => {
+    b.detail = b.detail || b.description || '';
+    b.action = b.action || b.fix || '';
+  });
+  (d.recommendations || []).forEach((r, i) => {
+    r.action = r.action || r.description || '';
+    r.rank = r.rank || i + 1;
+  });
+  // Fix journeys
+  if (d.detailed_analysis && d.detailed_analysis.experience) {
+    d.detailed_analysis.experience.journeys = (d.detailed_analysis.experience.journeys || []).map(j => ({
+      archetype: j.archetype || j.persona || j.name || 'Unknown',
+      summary: j.summary || j.journey_summary || j.description || j.friction || '',
+      friction_points: j.friction_points || (j.friction ? [j.friction] : []),
+      bright_spots: j.bright_spots || (j.bright ? [j.bright] : [])
+    }));
+  }
+  // Fix capabilities
+  (d.capabilities || []).forEach(c => {
+    c.finding_count = c.finding_count || (c.findings || []).length;
+    c.status = c.status || (c.finding_count > 0 ? 'needs-attention' : 'good');
+  });
+  return d;
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
+function init() {
+  const m = DATA.meta;
+  document.getElementById('skill-name').textContent = m.skill_name;
+  document.getElementById('subtitle').innerHTML =
+    `${esc(m.skill_path)} &bull; ${m.timestamp ? m.timestamp.split('T')[0] : ''} &bull; ${m.scanner_count || 0} scanners &bull; <a href="quality-report.md">Full Report &nearr;</a>`;
+
+  renderPortrait();
+  document.getElementById('grade-area').innerHTML = `<div class="grade grade-${DATA.grade}">${esc(DATA.grade)}</div>`;
+  document.getElementById('narrative').textContent = DATA.narrative || '';
+
+  renderCapabilities();
+  renderBroken();
+  renderOpportunities();
+  renderStrengths();
+  renderRecommendations();
+  renderDetailed();
+}
+
+function renderPortrait() {
+  const p = DATA.agent_profile;
+  if (!p) return;
+  let html = `<div class="portrait"><div class="portrait-header">`;
+  if (p.icon) html += `<span class="portrait-icon">${esc(p.icon)}</span>`;
+  html += `<div><div class="portrait-name">${esc(p.display_name)}</div>`;
+  if (p.title) html += `<div class="portrait-title">${esc(p.title)}</div>`;
+  html += `</div></div>`;
+  if (p.portrait) html += `<div class="portrait-desc">${esc(p.portrait)}</div>`;
+  html += `</div>`;
+  document.getElementById('portrait').innerHTML = html;
+}
+
+function renderCapabilities() {
+  const caps = DATA.capabilities || [];
+  if (!caps.length) return;
+  const good = caps.filter(c => c.status === 'good').length;
+  const attn = caps.length - good;
+  let summary = `${caps.length} capabilities`;
+  if (attn > 0) summary += ` \u00b7 ${attn} need attention`;
+
+  let html = `<div class="section"><div class="section-header open" onclick="toggleSection(this)">`;
+  html += `<span class="arrow">&#9654;</span><span class="label">Capabilities (${summary})</span>`;
+  html += `</div><div class="section-body open">`;
+  caps.forEach((cap, idx) => {
+    const statusBadge = cap.status === 'good'
+      ? `<span class="badge badge-good">Good</span>`
+      : `<span class="badge badge-attention">${cap.finding_count} observation${cap.finding_count !== 1 ? 's' : ''}</span>`;
+    const hasFindings = cap.findings && cap.findings.length > 0;
+    html += `<div class="cap-row" ${hasFindings ? `onclick="toggleCapFindings(${idx})" style="cursor:pointer"` : ''}>`;
+    html += `${statusBadge} <span class="cap-name">${esc(cap.name)}</span>`;
+    if (cap.file) html += `<span class="cap-file">${esc(cap.file)}</span>`;
+    html += `</div>`;
+    if (hasFindings) {
+      html += `<div class="cap-findings" id="cap-findings-${idx}">`;
+      cap.findings.forEach(f => {
+        html += `<div class="cap-finding">`;
+        if (f.severity) html += `<span class="badge badge-${f.severity}">${esc(f.severity)}</span> `;
+        html += `${esc(f.title)}`;
+        if (f.source) html += ` <span class="source" style="font-size:0.75rem;color:var(--text-dim)">[${esc(f.source)}]</span>`;
+        html += `</div>`;
+      });
+      html += `</div>`;
+    }
+  });
+  html += `</div></div>`;
+  document.getElementById('capabilities-section').innerHTML = html;
+}
+
+function renderBroken() {
+  const items = DATA.broken || [];
+  if (!items.length) return;
+  let html = `<div class="section"><div class="section-header open" onclick="toggleSection(this)">`;
+  html += `<span class="arrow">&#9654;</span><span class="label">Broken / Critical (${items.length})</span>`;
+  html += `<div class="actions"><button class="btn btn-primary" onclick="event.stopPropagation();showBrokenPrompt()">Fix These</button></div>`;
+  html += `</div><div class="section-body open">`;
+  items.forEach(item => {
+    const loc = item.file ? `${item.file}${item.line ? ':'+item.line : ''}` : '';
+    html += `<div class="item"><span class="badge badge-${item.severity || 'high'}">${esc(item.severity || 'high')}</span> `;
+    if (loc) html += `<span class="item-file">${esc(loc)}</span>`;
+    html += `<div class="item-title">${esc(item.title)}</div>`;
+    if (item.detail) html += `<div class="item-desc">${esc(item.detail)}</div>`;
+    if (item.action) html += `<div class="item-action"><strong>Fix:</strong> ${esc(item.action)}</div>`;
+    html += `</div>`;
+  });
+  html += `</div></div>`;
+  document.getElementById('broken-section').innerHTML = html;
+}
+
+function renderOpportunities() {
+  const opps = DATA.opportunities || [];
+  if (!opps.length) return;
+  let html = `<div class="section"><div class="section-header open" onclick="toggleSection(this)">`;
+  html += `<span class="arrow">&#9654;</span><span class="label">Opportunities (${opps.length})</span>`;
+  html += `</div><div class="section-body open">`;
+  opps.forEach((opp, idx) => {
+    html += `<div class="opp"><div class="opp-header">`;
+    html += `<span class="badge badge-${opp.severity || 'medium'}">${esc(opp.severity || 'medium')}</span>`;
+    html += `<span class="opp-name">${idx+1}. ${esc(opp.name)}</span>`;
+    html += `<span class="opp-count">${opp.finding_count || (opp.findings||[]).length} observations</span>`;
+    html += `<button class="btn" onclick="toggleFindings(${idx})">Details</button>`;
+    html += `<button class="btn btn-primary" onclick="showThemePrompt(${idx})">Fix This</button>`;
+    html += `</div>`;
+    html += `<div class="opp-desc">${esc(opp.description)}</div>`;
+    if (opp.impact) html += `<div class="opp-impact">Impact: ${esc(opp.impact)}</div>`;
+    html += `<div class="opp-findings" id="findings-${idx}">`;
+    (opp.findings || []).forEach(f => {
+      const loc = f.file ? `${f.file}${f.line ? ':'+f.line : ''}` : '';
+      html += `<div class="opp-finding"><strong>${esc(f.title)}</strong>`;
+      if (loc) html += ` <span class="item-file">${esc(loc)}</span>`;
+      if (f.source) html += ` <span class="source">[${esc(f.source)}]</span>`;
+      if (f.detail) html += `<br>${esc(f.detail)}`;
+      html += `</div>`;
+    });
+    html += `</div></div>`;
+  });
+  html += `</div></div>`;
+  document.getElementById('opportunities-section').innerHTML = html;
+}
+
+function renderStrengths() {
+  const items = DATA.strengths || [];
+  if (!items.length) return;
+  let html = `<div class="section"><div class="section-header" onclick="toggleSection(this)">`;
+  html += `<span class="arrow">&#9654;</span><span class="label">Strengths (${items.length})</span>`;
+  html += `</div><div class="section-body">`;
+  items.forEach(s => {
+    html += `<div class="strength-item"><div class="title">${esc(s.title)}</div>`;
+    if (s.detail) html += `<div class="detail">${esc(s.detail)}</div>`;
+    html += `</div>`;
+  });
+  html += `</div></div>`;
+  document.getElementById('strengths-section').innerHTML = html;
+}
+
+function renderRecommendations() {
+  const recs = DATA.recommendations || [];
+  if (!recs.length) return;
+  let html = `<div class="section"><div class="section-header open" onclick="toggleSection(this)">`;
+  html += `<span class="arrow">&#9654;</span><span class="label">Recommendations</span>`;
+  html += `</div><div class="section-body open"><div class="recs">`;
+  recs.forEach(r => {
+    html += `<div class="rec"><span class="rec-rank">#${r.rank}</span>${esc(r.action)}`;
+    if (r.resolves) html += ` <span class="rec-resolves">(resolves ${r.resolves} observations)</span>`;
+    html += `</div>`;
+  });
+  html += `</div></div></div>`;
+  document.getElementById('recommendations-section').innerHTML = html;
+}
+
+function renderDetailed() {
+  const da = DATA.detailed_analysis;
+  if (!da) return;
+  const dims = [
+    ['structure', 'Structure & Capabilities'],
+    ['persona', 'Persona & Voice'],
+    ['cohesion', 'Identity Cohesion'],
+    ['efficiency', 'Execution Efficiency'],
+    ['experience', 'Conversation Experience'],
+    ['scripts', 'Script Opportunities']
+  ];
+  let html = `<div class="section"><div class="section-header" onclick="toggleSection(this)">`;
+  html += `<span class="arrow">&#9654;</span><span class="label">Detailed Analysis</span>`;
+  html += `</div><div class="section-body">`;
+  dims.forEach(([key, label]) => {
+    const dim = da[key];
+    if (!dim) return;
+    html += `<div class="analysis-section"><h4>${label}</h4>`;
+    if (dim.assessment) html += `<p>${esc(dim.assessment)}</p>`;
+    if (dim.dimensions) {
+      html += `<table style="width:100%;font-size:0.85rem;margin:0.5rem 0;border-collapse:collapse;">`;
+      html += `<tr><th style="text-align:left;padding:0.3rem;border-bottom:1px solid var(--border)">Dimension</th><th style="text-align:left;padding:0.3rem;border-bottom:1px solid var(--border)">Score</th><th style="text-align:left;padding:0.3rem;border-bottom:1px solid var(--border)">Notes</th></tr>`;
+      Object.entries(dim.dimensions).forEach(([d, v]) => {
+        if (v && typeof v === 'object') {
+          html += `<tr><td style="padding:0.3rem;border-bottom:1px solid var(--border)">${esc(d.replace(/_/g,' '))}</td><td style="padding:0.3rem;border-bottom:1px solid var(--border)">${esc(v.score||'')}</td><td style="padding:0.3rem;border-bottom:1px solid var(--border)">${esc(v.notes||'')}</td></tr>`;
+        }
+      });
+      html += `</table>`;
+    }
+    if (dim.journeys && dim.journeys.length) {
+      dim.journeys.forEach(j => {
+        html += `<div style="margin:0.5rem 0"><strong>${esc(j.archetype)}</strong>: ${esc(j.summary || j.journey_summary || '')}`;
+        if (j.friction_points && j.friction_points.length) {
+          html += `<ul style="color:var(--high);font-size:0.85rem;padding-left:1.25rem">`;
+          j.friction_points.forEach(fp => { html += `<li>${esc(fp)}</li>`; });
+          html += `</ul>`;
+        }
+        html += `</div>`;
+      });
+    }
+    if (dim.autonomous) {
+      const a = dim.autonomous;
+      html += `<p><strong>Headless Potential:</strong> ${esc(a.potential||'')}`;
+      if (a.notes) html += ` \u2014 ${esc(a.notes)}`;
+      html += `</p>`;
+    }
+    (dim.findings || []).forEach(f => {
+      const loc = f.file ? `${f.file}${f.line ? ':'+f.line : ''}` : '';
+      html += `<div class="analysis-finding">`;
+      if (f.severity) html += `<span class="badge badge-${f.severity}">${esc(f.severity)}</span> `;
+      html += `${esc(f.title)}`;
+      if (loc) html += ` <span class="item-file">${esc(loc)}</span>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+  });
+  html += `</div></div>`;
+  document.getElementById('detailed-section').innerHTML = html;
+}
+
+function toggleSection(el) { el.classList.toggle('open'); el.nextElementSibling.classList.toggle('open'); }
+function toggleFindings(idx) { document.getElementById('findings-'+idx).classList.toggle('open'); }
+function toggleCapFindings(idx) { document.getElementById('cap-findings-'+idx).classList.toggle('open'); }
+
+function showThemePrompt(idx) {
+  const opp = DATA.opportunities[idx];
+  if (!opp) return;
+  let prompt = `## Task: ${opp.name}\nAgent path: ${DATA.meta.skill_path}\n\n### Problem\n${opp.description}\n\n### Fix\n${opp.action}\n\n`;
+  if (opp.findings && opp.findings.length) {
+    prompt += `### Specific observations to address:\n\n`;
+    opp.findings.forEach((f, i) => {
+      const loc = f.file ? (f.line ? `${f.file}:${f.line}` : f.file) : '';
+      prompt += `${i+1}. **${f.title}**`;
+      if (loc) prompt += ` (${loc})`;
+      if (f.detail) prompt += `\n   ${f.detail}`;
+      prompt += `\n`;
+    });
+  }
+  document.getElementById('modal-title').textContent = `Fix: ${opp.name}`;
+  document.getElementById('modal-content').textContent = prompt.trim();
+  document.getElementById('modal').classList.add('visible');
+}
+
+function showBrokenPrompt() {
+  const items = DATA.broken || [];
+  let prompt = `## Task: Fix Critical Issues\nAgent path: ${DATA.meta.skill_path}\n\n`;
+  items.forEach((item, i) => {
+    const loc = item.file ? (item.line ? `${item.file}:${item.line}` : item.file) : '';
+    prompt += `${i+1}. **[${(item.severity||'high').toUpperCase()}] ${item.title}**\n`;
+    if (loc) prompt += `   File: ${loc}\n`;
+    if (item.detail) prompt += `   Context: ${item.detail}\n`;
+    if (item.action) prompt += `   Fix: ${item.action}\n\n`;
+  });
+  document.getElementById('modal-title').textContent = 'Fix Critical Issues';
+  document.getElementById('modal-content').textContent = prompt.trim();
+  document.getElementById('modal').classList.add('visible');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('visible'); }
+function copyModal() {
+  navigator.clipboard.writeText(document.getElementById('modal-content').textContent).then(() => {
+    const btn = document.querySelector('.modal .btn-primary');
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy to Clipboard'; }, 1500);
+  });
+}
+
+init();
+</script>
+</body>
+</html>

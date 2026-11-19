@@ -1,0 +1,148 @@
+{
+  "scanner": "structure-capabilities-prepass",
+  "script": "prepass-structure-capabilities.py",
+  "version": "1.0.0",
+  "skill_path": "/Users/mickaelh/Documents/Opquast/Test Formation/kit-barometre-sites/code/.claude/skills/barometre-sites",
+  "timestamp": "2026-11-19T11:25:39.213242+00:00",
+  "status": "warning",
+  "metadata": {
+    "frontmatter": {
+      "name": "barometre-sites",
+      "description": "Barom\u00e8tre qualit\u00e9 des sites e-commerce de Mattea (formation Opquast, Colorz) \u2014 relance toute la mesure des 6 boutiques Shopify sur les 245 r\u00e8gles Opquast V5 (scripts r\u00e9seau et page, outils libres axe, IBM, Alfa, Sa11y, Pa11y, html-validate, Lighthouse, moteur Opquast devtools, relev\u00e9 navigateur, donn\u00e9es publiques Shopify, lectures IA ind\u00e9pendantes \u00e0 preuve v\u00e9rifi\u00e9e), recoupe au moins deux sources par r\u00e8gle, tranche les \u00e9carts selon le protocole Opquast, puis sort la page de suivi publi\u00e9e en Artifact et un CSV d\u00e9taill\u00e9 (une ligne par r\u00e8gle et par site) avec les scores. Utiliser d\u00e8s qu'on parle de relancer, rejouer, mettre \u00e0 jour ou refaire le barom\u00e8tre des sites, un nouveau passage, les scores Opquast des boutiques, le CSV ou le rapport du barom\u00e8tre, ou /barometre-sites, m\u00eame sans dire \u00ab skill \u00bb."
+    },
+    "sections": [
+      {
+        "level": 2,
+        "title": "R\u00e8gles \u00e0 ne jamais enfreindre",
+        "line": 12
+      },
+      {
+        "level": 2,
+        "title": "Pr\u00e9requis et installation (sur n'importe quel ordinateur)",
+        "line": 22
+      },
+      {
+        "level": 2,
+        "title": "D\u00e9roul\u00e9",
+        "line": 46
+      },
+      {
+        "level": 2,
+        "title": "Trancher les \u00e9carts",
+        "line": 81
+      },
+      {
+        "level": 2,
+        "title": "Publication",
+        "line": 98
+      },
+      {
+        "level": 2,
+        "title": "Fichiers utiles",
+        "line": 110
+      }
+    ],
+    "is_memory_agent": false
+  },
+  "prompt_details": [
+    {
+      "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md",
+      "has_config_header": false,
+      "has_progression": false
+    },
+    {
+      "file": "lectures-independantes.md",
+      "has_config_header": false,
+      "has_progression": false
+    }
+  ],
+  "memory_paths": [],
+  "issues": [
+    {
+      "file": "SKILL.md",
+      "line": 1,
+      "severity": "medium",
+      "category": "frontmatter",
+      "issue": "Name \"barometre-sites\" should contain \"agent\" (e.g., agent-{name} or {code}-agent-{name})"
+    },
+    {
+      "file": "SKILL.md",
+      "line": 1,
+      "severity": "medium",
+      "category": "frontmatter",
+      "issue": "Description missing \"Use when...\" trigger phrase"
+    },
+    {
+      "file": "SKILL.md",
+      "line": 1,
+      "severity": "high",
+      "category": "sections",
+      "issue": "Missing ## Overview section"
+    },
+    {
+      "file": "SKILL.md",
+      "line": 1,
+      "severity": "high",
+      "category": "sections",
+      "issue": "Missing ## Identity section"
+    },
+    {
+      "file": "SKILL.md",
+      "line": 1,
+      "severity": "high",
+      "category": "sections",
+      "issue": "Missing ## Communication Style section"
+    },
+    {
+      "file": "SKILL.md",
+      "line": 1,
+      "severity": "high",
+      "category": "sections",
+      "issue": "Missing ## Principles section"
+    },
+    {
+      "file": "SKILL.md",
+      "line": 1,
+      "severity": "high",
+      "category": "sections",
+      "issue": "Missing ## On Activation section"
+    },
+    {
+      "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md",
+      "line": 1,
+      "severity": "medium",
+      "category": "config-header",
+      "issue": "No config header with language variables found"
+    },
+    {
+      "file": "INSTALLER-AVEC-UN-ASSISTANT-IA.md",
+      "line": 99,
+      "severity": "high",
+      "category": "progression",
+      "issue": "No progression condition keywords found"
+    },
+    {
+      "file": "lectures-independantes.md",
+      "line": 1,
+      "severity": "medium",
+      "category": "config-header",
+      "issue": "No config header with language variables found"
+    },
+    {
+      "file": "lectures-independantes.md",
+      "line": 29,
+      "severity": "high",
+      "category": "progression",
+      "issue": "No progression condition keywords found"
+    }
+  ],
+  "summary": {
+    "total_issues": 11,
+    "by_severity": {
+      "critical": 0,
+      "high": 7,
+      "medium": 4,
+      "low": 0
+    }
+  }
+}
