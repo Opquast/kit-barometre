@@ -20,3 +20,6 @@ Thumbs.db
 *.tmp
 *.log
 ~$*
+
+# Archives (le contenu décompressé est versionné)
+*.zip

@@ -1,0 +1,153 @@
+code,niveau,recommandation
+3,thème,"Renseigner une meta description propre à chaque gabarit (champ « Référencement » des produits, collections et pages Shopify) ; prévoir une valeur par défaut dans le thème pour les pages qui n'en ont pas."
+13,thème,"Afficher sur la page de recherche le nombre de résultats (variable search.results_count du thème) et, s'il y a pagination, le nombre de pages et de résultats par page."
+15,thème,"Ajouter le lien vers la politique de confidentialité dans le pied de page commun, pour qu'il soit présent sur toutes les pages."
+68,contenu,"Indiquer l'origine ou le lieu de fabrication de chaque produit dans la fiche (champ méta « provenance » affiché par le thème), en particulier pour les produits alimentaires et textiles."
+69,thème,"Associer chaque champ à une étiquette propre (label for=id ou aria-label) : recherche, newsletter, quantité, sélecteurs de variante ; ne pas se contenter du placeholder."
+71,thème,"Signaler les champs obligatoires dans l'étiquette elle-même (astérisque expliquée en tête de formulaire ou mention « obligatoire »), y compris dans les formulaires Klaviyo et de contact."
+75,plateforme,Ajouter une confirmation du mot de passe ou un bouton « afficher le mot de passe » à la création de compte (comptes clients Shopify ou application de comptes).
+76,plateforme,"Ajouter un bouton « afficher le mot de passe » sur les champs de mot de passe (connexion, création de compte)."
+87,thème,"Afficher la liste des étapes du tunnel de commande (panier, informations, livraison, paiement) et l'étape en cours, dès le panier."
+95,thème,"Déclarer chaque champ avec le type adapté : type=email pour l'e-mail, type=tel pour le téléphone, type=search pour la recherche."
+97,thème,"Ajouter l'attribut autocomplete (email, given-name, tel, postal-code…) sur les champs de données personnelles."
+98,thème,Ne pas masquer aux lecteurs d'écran les boutons désactivés (pas d'aria-hidden ni de display:none) : utiliser l'attribut disabled ou aria-disabled.
+103,contenu,"Rendre chaque titre de page unique et descriptif : « Nom du produit | Marque », « Collection X | Marque », « Résultats pour … | Marque »."
+104,thème,Déclarer une icône de favori valide (réglage « Favicon » du thème Shopify) et vérifier que le fichier répond bien.
+105,contenu,Faire figurer l'adresse postale complète et un numéro de téléphone de la société dans le pied de page commun.
+107,contenu,"Proposer au moins deux moyens de contact visibles (formulaire, e-mail, téléphone, chat) depuis le pied de page ou une page Contact."
+116,thème,"Donner une alternative vide (alt="""") aux images décoratives (fonds, séparateurs, icônes doublées d'un texte)."
+117,contenu,Donner à chaque image-lien une alternative qui décrit la destination (ex. « Voir la collection Noël ») ; vérifier les logos et visuels de bannière.
+118,contenu,"Renseigner une alternative pertinente pour chaque image porteuse d'information (texte alternatif des médias produits dans Shopify, bannières contenant du texte)."
+119,thème,"Servir les vignettes à la bonne taille avec les filtres d'image Shopify (image_url: width) et srcset, au lieu de réduire de grandes images dans le navigateur."
+120,thème,"Donner un titre ou une alternative aux objets et iframes intégrés (vidéos, cartes, widgets d'avis) : attribut title explicite."
+121,contenu,"Fournir une transcription textuelle des vidéos ou contenus audio porteurs d'information, sous la vidéo ou dans un lien."
+122,contenu,Ajouter des sous-titres synchronisés aux vidéos porteuses d'information (piste .vtt ou sous-titres de la plateforme vidéo).
+124,thème,"Ne pas lancer de vidéo porteuse d'information automatiquement : lecture au clic, ou autoplay seulement pour une vidéo décorative, muette et avec bouton pause."
+128,contenu,"Écrire les numéros de téléphone avec l'indicatif international (+33 …), dans le texte comme dans les liens tel:."
+136,thème,"Donner un intitulé à chaque lien (texte visible, aria-label ou alt de l'image-lien) : icônes panier, compte, réseaux sociaux, flèches de carrousel."
+137,contenu,"Rendre chaque libellé de lien explicite hors contexte : remplacer « ici », « en savoir plus » par la destination."
+140,thème,Différencier les liens du texte autrement que par la couleur seule (soulignement dans les contenus éditoriaux).
+146,thème,"Signaler l'ouverture d'une nouvelle fenêtre (icône avec texte alternatif « nouvelle fenêtre » ou mention dans le libellé), ou supprimer target=_blank quand il n'est pas nécessaire."
+147,contenu,Indiquer le format des fichiers en téléchargement dans le libellé du lien (ex. « Guide des tailles (PDF) »).
+148,contenu,"Indiquer le poids des fichiers en téléchargement dans le libellé du lien (ex. « (PDF, 450 Ko) »)."
+156,thème,"Ajouter un fil d'Ariane sur les collections, produits, articles et pages (section breadcrumb du thème, données structurées BreadcrumbList)."
+157,thème,"Signaler l'élément de menu actif (classe et aria-current=""page"") pour situer la rubrique en cours."
+159,thème,"Accompagner les icônes de navigation (compte, panier, recherche, menu) d'une légende visible ou au moins d'un nom accessible."
+164,thème,"Ajouter un lien d'évitement « Aller au contenu » en tête de page, visible au focus."
+165,thème,"Ne jamais supprimer le contour de focus (outline: none sans alternative) ; prévoir un style :focus-visible contrasté sur les liens, boutons et champs."
+168,thème,"Proposer une recherche interne accessible depuis toutes les pages (icône loupe avec champ, page /search)."
+171,contenu,"Créer une page Plan du site listant collections et pages, et la lier depuis le pied de page commun."
+186,thème,"Porter les zones cliquables à 44 x 44 px au moins (au minimum 24 x 24 px) : icônes, puces de carrousel, liens du pied de page, sélecteurs de variante."
+190,thème,"Terminer chaque pile de polices par une famille générique (sans-serif, serif) dans les CSS du thème."
+191,thème,Ne pas justifier les textes (text-align: justify) : aligner à gauche.
+193,thème,Ne pas bloquer le zoom : retirer maximum-scale=1 et user-scalable=no de la meta viewport du thème.
+195,thème,Ajouter une feuille de style d'impression (@media print) qui masque menus et bandeaux et imprime correctement fiches produits et récapitulatif de commande.
+199,plateforme,"Allonger la durée HSTS à au moins un an (max-age=31536000) avec includeSubDomains ; sur Shopify, l'en-tête est fixé par la plateforme : à demander au support ou à porter via le CDN si le domaine passe par un proxy."
+203,plateforme,Afficher un indicateur de robustesse du mot de passe à la création de compte (application de comptes ou nouveaux comptes clients Shopify).
+212,plateforme,Restreindre l'origine des contenus par une politique CSP avec default-src ou script-src ; la CSP par défaut de Shopify ne le fait pas : à traiter au niveau plateforme et des applications installées.
+214,thème,Ajouter l'attribut integrity (SRI) aux scripts et styles tiers chargés en dur dans le thème ; limiter les scripts tiers injectés par les applications.
+217,plateforme,"Passer la politique DMARC du domaine de p=none à p=quarantine puis p=reject, après contrôle des rapports DMARC ; vérifier l'alignement SPF et DKIM de tous les outils d'envoi (Klaviyo, support, transactionnel)."
+227,plateforme,Les fichiers statiques sont bien mis en cache par le CDN Shopify ; la page HTML est servie en max-age=0 par la plateforme. Point à documenter comme limite Shopify plutôt qu'à corriger.
+230,thème,Minifier les scripts propres au thème (fichiers .min.js générés au build) avant mise en ligne.
+232,thème,"Placer <meta charset=""utf-8""> en toute première position du <head> du thème (dans les 1 024 premiers octets) et ne le déclarer qu'une fois."
+233,thème,Ne déclarer que l'UTF-8 et supprimer la seconde déclaration de jeu de caractères repérée par le W3C.
+234,thème,"Structurer chaque page avec un seul h1 puis des h2, h3 sans saut de niveau ; ne pas utiliser les titres pour la mise en forme."
+236,thème,Rendre uniques les identifiants HTML des sections répétées (ids générés par section.id ou forloop.index dans les snippets Liquid).
+EM01,template,"Ajouter lang=""fr"" sur la balise <html> des templates Klaviyo (code HTML du modèle de base)."
+EM02,template,Remplacer les alt génériques (« Custom ») par un texte qui décrit l'image ; décrire le texte contenu dans les bannières.
+EM04,template,"Donner aux images-liens (logo, icônes réseaux sociaux, bannières) une alternative qui indique la destination (« Instagram Boutique C »)."
+EM06,marque,"Assombrir le rose de marque pour le texte et les boutons (au moins 4,5:1 sur blanc), ou réserver le rose actuel aux grands titres et aux éléments décoratifs."
+EM08,template,Remplacer les liens « ici » par des libellés explicites qui décrivent l'action ou la destination.
+EM09,template,"Utiliser de vrais titres (h1 pour le titre principal, h2 pour les sections) dans les blocs texte Klaviyo plutôt que du texte en gras."
+EM10,template,"Ajouter role=""presentation"" sur les tableaux de mise en page du modèle de base et des blocs personnalisés."
+EM16,template,Ajouter le lien « Voir la version en ligne » ({% web_view %}) en tête de l'e-mail de bienvenue.
+EM20,template,Ajouter dans le pied de page de tous les e-mails l'adresse postale de l'annonceur (bloc pied de page Klaviyo avec {{ organization.address }}).
+EM21,formulaire,"Recueillir le consentement e-mail par une case dédiée, non précochée, distincte de la participation au jeu ; rendre le suivi des ouvertures refusable."
+EM23,formulaire,Ajouter le lien vers la politique de confidentialité à chaque étape de saisie d'e-mail des formulaires et dans le pied de page des e-mails.
+EM24,formulaire,Annoncer la fréquence d'envoi au moment de l'inscription (ex. « 1 à 2 e-mails par semaine »).
+EM32,formulaire,Ajouter une étiquette visible à chaque champ des formulaires Klaviyo (pas seulement un placeholder) et vérifier les messages d'erreur.
+EM35,template,"Déclarer <meta name=""color-scheme"" content=""light dark""> et supported-color-schemes dans le <head> des templates."
+EM36,template,"Ajouter des styles @media (prefers-color-scheme: dark) pour les fonds, textes et logos (version claire du logo)."
+EM37,template,Dupliquer les styles sombres avec les sélecteurs [data-ogsc] et [data-ogsb] pour Outlook.
+5,contenu,Expliciter chaque sigle à sa première occurrence (« conditions générales de vente (CGV) ») ou avec <abbr title>.
+17,thème,"Garder la création de compte par e-mail sur le site ; les connexions Google, Apple ou Shop restent facultatives."
+18,paramétrage,Activer l'e-mail de confirmation de compte (Paramètres > Notifications > Compte client) et vérifier sa réception.
+23,thème,Afficher un lien « Se déconnecter » visible dans l'espace client et dans le menu compte de l'en-tête.
+30,paramétrage,Garder la commande en invité (Paramètres > Paiement > Comptes clients : « facultatifs » ou comptes sans mot de passe).
+33,paramétrage,Décocher par défaut la case d'inscription aux offres au paiement (Paramètres > Paiement > Marketing : décocher « présélectionner »).
+58,paramétrage,Proposer au moins deux moyens de paiement (carte et PayPal ou Apple Pay) et les afficher dans le pied de page.
+59,paramétrage,"Laisser l'enregistrement de la carte (Shop Pay) facultatif, avec une case non cochée et explicite."
+60,paramétrage,Permettre de voir et de supprimer les moyens de paiement enregistrés depuis l'espace client (Shop Pay ou comptes clients Shopify).
+62,paramétrage,Rendre les factures téléchargeables dans l'espace client (application de facturation PDF liée aux commandes).
+63,paramétrage,Envoyer un e-mail à chaque facturation (notification « Confirmation de commande » avec la facture jointe ou en lien).
+66,paramétrage,"Vérifier que l'e-mail de confirmation de commande reprend le numéro de commande, les articles, les montants et l'adresse."
+79,thème,"Mettre en évidence les champs refusés (bordure, icône et aria-invalid=""true"") et placer le focus sur le premier champ en erreur."
+80,thème,Afficher sous chaque champ refusé un message rédigé par le site qui explique quoi corriger (ex. « L'adresse doit contenir un @ et un domaine »).
+90,thème,Prévenir avant de quitter une page avec un formulaire rempli (événement beforeunload sur les formulaires longs).
+110,paramétrage,Envoyer un accusé de réception automatique à chaque message du formulaire de contact (Shopify Flow ou outil de support).
+166,thème,"Rendre tous les contrôles atteignables et actionnables au clavier : sélecteurs de taille, « Ajouter au panier », tiroir du panier, fermeture des popups avec Échap."
+173,paramétrage,Activer le double opt-in sur les listes newsletter Klaviyo (Listes > Paramètres > Double opt-in) et soigner l'e-mail de confirmation.
+182,thème,"Porter le contraste des textes à 4,5:1 au moins (3:1 au-delà de 24 px ou 19 px gras) ; vérifier boutons, prix barrés et mentions grisées."
+224,serveur,Sans objet sur Shopify (pas de page 403 publique) : justifier en non applicable dans l'audit.
+EM15,paramétrage,"Rédiger une version texte pour chaque e-mail clé (bienvenue, panier, après achat) dans l'éditeur Klaviyo (« Version texte »), plutôt que la version générée."
+1,contenu,Proposer une rubrique « Nouveautés » visible depuis le menu ou l'accueil.
+2,thème,"Afficher la mention de droits (© Marque, année) dans le pied de page commun à toutes les pages."
+4,contenu,Écrire les dates en toutes lettres ou avec l'année sur 4 chiffres (12 novembre 2026).
+6,thème,Afficher la date de publication sur les articles et recettes.
+14,contenu,"Ne pas détourner de caractères (tirets, étoiles) pour faire des séparateurs ou des cadres : utiliser les styles."
+16,contenu,"Décrire dans la politique de confidentialité comment exercer ses droits d'accès, de rectification et d'effacement (adresse, délai)."
+29,contenu,Expliquer dans la politique cookies à quoi sert chaque catégorie de cookies et ce que l'on perd en les refusant.
+31,thème,Faire de chaque ligne du panier un lien vers la fiche du produit.
+34,thème,"Indiquer la disponibilité en texte sur la fiche produit (en stock, plus que 2, épuisé)."
+35,contenu,"Indiquer le délai de livraison sur la fiche produit et dans le panier, pas seulement dans les CGV."
+36,contenu,Indiquer les frais de livraison (ou le seuil de gratuité) dans le panier.
+38,thème,Permettre de modifier la quantité et de supprimer un article directement dans le panier.
+39,contenu,"Indiquer sur chaque fiche les caractéristiques chiffrées (contenance, poids, dimensions, composition)."
+40,contenu,Indiquer la période de validité de chaque promotion (jusqu'au …).
+42,contenu,"Indiquer les conditions du paiement fractionné (montant minimum, frais, pays) près du prix et dans les CGV."
+43,contenu,"Décrire le service après-vente (contact, délais, prise en charge) dans les CGV ou une page d'aide."
+44,contenu,Préciser dans les CGV quand le compte est débité (à la commande ou à l'expédition).
+45,contenu,"Rappeler dans les CGV les garanties légales (conformité, vices cachés) et la garantie commerciale éventuelle."
+47,contenu,Indiquer les pays ou zones de livraison.
+48,contenu,Lister les moyens de paiement acceptés et leur fonctionnement dans les CGV et le pied de page.
+49,contenu,"Nommer le prestataire de paiement (Shopify Payments, PayPal…) dans les CGV."
+50,contenu,"Indiquer le médiateur de la consommation (nom, site) et la plateforme européenne de règlement des litiges dans les CGV."
+51,contenu,Indiquer l'adresse et la procédure de retour.
+52,contenu,"Dire qui paie les frais de retour, avant la validation de la commande."
+53,contenu,Indiquer comment déposer une réclamation et comment elle est traitée.
+54,contenu,Préciser les conditions et le délai de remboursement (droit de rétractation de 14 jours).
+65,thème,"Distinguer les produits épuisés par un texte et un style (bouton désactivé « Épuisé », variante barrée)."
+74,thème,Indiquer la limite de caractères dans l'étiquette des champs limités.
+88,thème,"Rappeler l'étape en cours du parcours de commande (panier, paiement, confirmation)."
+94,thème,"Trier les listes d'options dans un ordre identifiable (alphabétique, croissant)."
+101,contenu,"Indiquer l'identité de la société (raison sociale, forme) dans les mentions légales."
+106,contenu,Indiquer le numéro RCS ou SIRET dans les mentions légales.
+108,contenu,Annoncer le délai de réponse sur la page contact.
+109,contenu,Indiquer les horaires du service client.
+112,contenu,Proposer un moyen de contacter le service client depuis toutes les pages.
+114,contenu,Indiquer le responsable de la publication dans les mentions légales.
+126,thème,Ajouter un bouton pause aux carrousels et animations qui défilent seuls.
+129,contenu,"Ajouter le pays aux adresses postales (mentions légales, contact, retours)."
+134,thème,"Écrire chaque lien de langue dans sa propre langue (English, Deutsch, Español)."
+139,thème,Réserver le soulignement aux liens : retirer text-decoration: underline des textes qui ne sont pas des liens.
+141,thème,Différencier les liens visités dans les contenus éditoriaux.
+142,thème,Signaler les liens externes (icône avec alternative ou mention).
+144,thème,"Rendre explicites les liens qui ouvrent un logiciel (messagerie, téléphone)."
+151,contenu,Ne pas soumettre les liens entrants à autorisation dans les mentions légales.
+154,paramétrage,Ne pas ouvrir de popup à l'arrivée : afficher l'inscription newsletter dans la page ou après une action de l'utilisateur.
+160,paramétrage,"Placer le bouton de fermeture dans la popup, en haut à droite."
+162,paramétrage,Donner à chaque popup un bouton de fermeture explicite.
+177,contenu,Publier la dernière newsletter en ligne.
+178,contenu,Proposer les archives des newsletters en ligne.
+179,paramétrage,Annoncer la fréquence d'envoi dans les formulaires d'inscription (popup et pied de page).
+184,contenu,"Ne pas désigner un contenu par sa position ou sa forme seules (« ci-dessous », « bouton rouge »)."
+189,thème,"Donner une alternative aux pictogrammes typographiques (★, ✓, →)."
+192,thème,Écrire les textes en minuscules et passer en capitales par les styles (text-transform).
+196,thème,"Masquer en-tête, menu et pied de page à l'impression."
+208,contenu,"Indiquer comment les paiements sont sécurisés (3D Secure, prestataire certifié PCI DSS)."
+225,thème,Afficher le menu principal sur la page 404.
+231,thème,Rendre la date de publication lisible par machine (balise time ou données structurées).
+235,thème,"Baliser les listes visuelles avec ul, ol ou dl plutôt qu'avec des tirets."
+25,thème,"Déclarer une politique de referrer : Shopify ne permet pas d'ajouter un en-tête HTTP depuis le thème, mais la balise meta referrer dans le <head> a le même effet pour le navigateur (valeur conseillée : strict-origin-when-cross-origin)."
+135,configuration,"Activer la redirection selon la langue du navigateur dans Shopify Markets (Paramètres > Marchés > Domaines et langues), ou proposer à la première visite la version correspondant à la langue préférée du navigateur."
+185,thème,"Ne jamais masquer aux lecteurs d'écran (aria-hidden=""true"") un élément qui reste atteignable au clavier : retirer aria-hidden, ou rendre l'élément et ses liens non focalisables (tabindex=""-1"", attribut inert) tant qu'il est caché (carrousels, menus repliés, tiroirs)."

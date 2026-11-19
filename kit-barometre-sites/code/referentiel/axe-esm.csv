@@ -1,0 +1,52 @@
+code_esm,regle_axe,intitule
+AXE-CC,color-contrast,Elements must meet minimum color contrast ratio thresholds
+SCAN-COLOR-CONTRAST-ENHAN,color-contrast-enhanced,Elements must meet enhanced color contrast ratio thresholds
+AXE-IMG-ALT,image-alt,Images must have alternate text
+LIGHTHOU-image-redund,image-redundant-alt,Image alt text should not be redundant with adjacent text
+LIGHTHOU-input-image-,input-image-alt,Image buttons must have alternate text
+LIGHTHOU-object-alt,object-alt,<object> elements must have alternate text
+SCAN-AREA-ALT,area-alt,Active <area> elements must have alternate text
+LIGHTHOU-empty-headin,empty-heading,Headings must not be empty
+AXE-HEAD,heading-order,Heading levels should only increase by one
+SCAN-PAGE-HAS-HEADING-ONE,page-has-heading-one,Page should contain a level-one heading
+AXE-LABEL,label,Form elements must have labels
+SCAN-LABEL-TITLE-ONLY,label-title-only,"Form elements should have a visible label, not just a title attribute"
+LIGHTHOU-form-field-m,form-field-multiple-labels,Form fields should not have multiple labels
+LIGHTHOU-select-name,select-name,<select> elements must have an accessible name
+LIGHTHOU-autocomplete,autocomplete-valid,autocomplete attribute must use a valid token
+AXE-BTN,button-name,Buttons must have discernible text
+AXE-LINK,link-name,Links must have discernible text
+AXE-FRAME,frame-title,Frames must have an accessible name
+AXE-TITLE,document-title,Documents must have a non-empty <title>
+AXE-LANG,html-has-lang,<html> element must have a lang attribute
+AXE-LANG-V,html-lang-valid,<html> element must have a valid lang attribute
+LIGHTHOU-html-xml-lan,html-xml-lang-mismatch,lang and xml:lang attributes must match
+LIGHTHOU-valid-lang,valid-lang,lang attribute must have a valid value
+AXE-VIEWPORT,meta-viewport,Zooming and scaling must not be disabled
+LIGHTHOU-aria-allowed,aria-allowed-attr,ARIA attributes must be allowed for an element's role
+SCAN-ARIA-ALLOWED-ROLE,aria-allowed-role,ARIA role must be appropriate for the element
+LIGHTHOU-aria-require,aria-required-attr,Required ARIA attributes must be provided
+AXE-ARIA-RC,aria-required-children,Certain ARIA roles must contain particular children
+AXE-ARIA-RP,aria-required-parent,Certain ARIA roles must be contained by particular parents
+AXE-ARIA-ROLE,aria-roles,ARIA roles used must conform to valid values
+AXE-ARIA-V,aria-valid-attr,ARIA attributes must conform to valid names
+AXE-ARIA-VV,aria-valid-attr-value,ARIA attributes must conform to valid values
+AXE-ARIA-BODY,aria-hidden-body,"aria-hidden=""true"" must not be present on the document body"
+AXE-ARIA-HF,aria-hidden-focus,ARIA hidden element must not be focusable or contain focusable elements
+LIGHTHOU-aria-input-f,aria-input-field-name,ARIA input fields must have an accessible name
+LIGHTHOU-aria-toggle-,aria-toggle-field-name,ARIA toggle fields must have an accessible name
+LIGHTHOU-bypass,bypass,Page must have a means to bypass repeated blocks
+AXE-DUP-ID,duplicate-id,id attribute values must be unique
+SCAN-DUPLICATE-ID-ACTIVE,duplicate-id-active,Active id attributes must be unique
+LIGHTHOU-duplicate-id,duplicate-id-aria,id values used by ARIA references must be unique
+AXE-TAB,tabindex,tabindex values greater than 0 should be avoided
+AXE-MAIN,landmark-one-main,Document should have one main landmark
+SCAN-LANDMARK-UNIQUE,landmark-unique,Landmarks should have unique role / accessible name combinations
+AXE-REGION,region,All page content should be contained in landmarks
+AXE-LIST,list,<ul> and <ol> must only contain <li> direct children
+AXE-LI,listitem,<li> elements must be contained within a list
+LIGHTHOU-definition-l,definition-list,<dl> must only contain properly-ordered <dt> and <dd> groups
+LIGHTHOU-dlitem,dlitem,<dt> and <dd> elements must be contained by a <dl>
+LIGHTHOU-td-headers-a,td-headers-attr,Table cells must reference valid <th> headers
+LIGHTHOU-th-has-data-,th-has-data-cells,<th> elements must have data cells they describe
+LIGHTHOU-table-fake-c,table-fake-caption,Data or header cells must not be used to give caption to a data table

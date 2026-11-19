@@ -1,0 +1,6 @@
+service,gabarit,url
+Ma boutique,Accueil,https://www.exemple-boutique.fr/
+Ma boutique,Collection,https://www.exemple-boutique.fr/collections/all
+Ma boutique,Produit,https://www.exemple-boutique.fr/products/exemple
+Ma boutique,Panier,https://www.exemple-boutique.fr/cart
+Ma boutique,Recherche,https://www.exemple-boutique.fr/search?q=exemple

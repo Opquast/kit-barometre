@@ -1,0 +1,4 @@
+# Paquets Python du baromètre, installés dans .venv (python3 -m venv .venv && .venv/bin/pip install -r requirements.txt)
+redbot==2.8.1       # REDbot en local : en-têtes HTTP (scripts/redbot_local.py)
+openpyxl==3.1.5     # classeur Excel des livrables
+checkdmarc==6.0.4   # baromètre e-mails : SPF et DMARC

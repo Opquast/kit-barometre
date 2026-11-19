@@ -1,0 +1,63 @@
+{
+ "base": "https://esm.opquast.com/audits/",
+ "scripts": {
+  "Boutique A": "",
+  "Boutique B": "",
+  "Boutique C": "",
+  "Boutique D": "",
+  "Boutique E": "",
+  "Boutique F": ""
+ },
+ "basics": {
+  "Boutique A": "",
+  "Boutique B": "",
+  "Boutique C": "",
+  "Boutique D": "",
+  "Boutique E": "",
+  "Boutique F": ""
+ },
+ "email": {
+  "Klaviyo Boutique C": ""
+ },
+ "noms": {
+  "scripts": "{site}, scripts sans IA (réseau, page, i18n, REDbot)",
+  "basics": "{site}, Opquast basics (robot d'eServices Manager)",
+  "email": "{site}, checklist e-mail Colorz (41 critères)",
+  "contre_examen": "{site}, contre-examen manuel et parcours (validé par Mattea)",
+  "releve": "{site}, règles complémentaires (relevé navigateur, Claude, à valider)",
+  "complement": "{site}, règles complémentaires 2 (deuxièmes sources, Claude, à valider)",
+  "complement3": "{site}, règles complémentaires 3 (recoupement du 13/11, Claude, à valider)"
+ },
+ "contre_examen": {
+  "Boutique A": "",
+  "Boutique B": "",
+  "Boutique C": "",
+  "Boutique D": "",
+  "Boutique E": "",
+  "Boutique F": ""
+ },
+ "releve": {
+  "Boutique F": "",
+  "Boutique A": "",
+  "Boutique B": "",
+  "Boutique C": "",
+  "Boutique E": "",
+  "Boutique D": ""
+ },
+ "complement": {
+  "Boutique A": "",
+  "Boutique B": "",
+  "Boutique C": "",
+  "Boutique D": "",
+  "Boutique E": "",
+  "Boutique F": ""
+ },
+ "complement3": {
+  "Boutique A": "",
+  "Boutique B": "",
+  "Boutique C": "",
+  "Boutique D": "",
+  "Boutique E": "",
+  "Boutique F": ""
+ }
+}
