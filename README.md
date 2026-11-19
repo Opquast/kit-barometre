@@ -2,6 +2,8 @@
 
 Ce dépôt mesure la conformité d'un parc de sites e-commerce aux 245 règles Opquast V5. Pour chaque règle, il recoupe au moins deux sources indépendantes (scripts, outils libres, robot eServices Manager, lectures IA à preuve vérifiée, contre-examen humain), tranche les écarts par une décision écrite, puis produit une page de suivi, des CSV et un compte rendu.
 
+**Autrice initiale** : Mattea LUSSIER, qui a conçu la méthode et le kit et les a partagés avec les élèves de la formation Opquast (voir `kit-barometre-sites/LISEZ-MOI.md`).
+
 Ce README sert à la prise en main rapide par un assistant IA. Il donne la carte du dépôt, les règles à ne jamais enfreindre et les commandes d'entrée. La méthode complète est dans la skill.
 
 ## À lire dans cet ordre
